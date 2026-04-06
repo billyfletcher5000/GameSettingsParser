@@ -2,18 +2,18 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Shapes;
-using GameSettingsParser.Model;
 using Microsoft.Win32;
-using Path = System.IO.Path;
+using GameSettingsParser.Model;
+using GameSettingsParser.Settings;
 using GameSettingsParser.Utility;
 using GameSettingsParser.Views;
+using Path = System.IO.Path;
 
 namespace GameSettingsParser.ViewModel
 {
     public class MainWindowViewModel : BindableBase
     {
-        private ParsingProfileModel _parsingProfile = new ParsingProfileModel();
+        private ParsingProfileModel _parsingProfile;
         
         public ObservableCollection<ImageModel> Images => _parsingProfile.Images;
         
@@ -23,37 +23,24 @@ namespace GameSettingsParser.ViewModel
             get => _selectedImage;
             set
             {
-                SetProperty(ref _selectedImage, value, () => RaisePropertyChanged(nameof(SelectedImagePath)));
+                SetProperty(ref _selectedImage, value);
                 if (_selectedImage != null)
                 {
                     var newSelectedImageInstance = _parsingProfile.ImageInstances.FirstOrDefault(instance => instance.Image == _selectedImage);
                     if (newSelectedImageInstance == null)
+                    {
                         newSelectedImageInstance = new ParsingProfileModel.ImageInstance() { Image = _selectedImage.Value };
+                        _parsingProfile.ImageInstances.Add(newSelectedImageInstance);
+                    }
+
                     SetProperty(ref _selectedImageInstance, newSelectedImageInstance, nameof(SelectedImageInstance)); 
                 }
             }
         }
 
-        private ParsingProfileModel.ImageInstance _selectedImageInstance;
-        public ParsingProfileModel.ImageInstance SelectedImageInstance => _selectedImageInstance;
+        private ParsingProfileModel.ImageInstance? _selectedImageInstance;
+        public ParsingProfileModel.ImageInstance? SelectedImageInstance => _selectedImageInstance;
         
-        public string? SelectedImagePath
-        {
-            get => SelectedImage?.Path;
-            set
-            {
-                if (_selectedImage.HasValue && value != null && _selectedImage.Value.Path != value)
-                {
-                    if (SelectedImage != null)
-                    {
-                        var updated = SelectedImage.Value;
-                        updated.Path = value;
-                        SelectedImagePath = updated.Path;
-                        RaisePropertyChanged();
-                    }
-                }
-            }
-        }
 
         public ObservableCollection<MarkupTypeModel> MarkupTypes => _parsingProfile.MarkupTypes;
         
@@ -81,8 +68,21 @@ namespace GameSettingsParser.ViewModel
             
             AddMarkupTypeCommand = new DelegateCommand(AddMarkupType);
             RemoveMarkupTypeCommand = new DelegateCommand(RemoveMarkupType);
-            
-            _parsingProfile.MarkupTypes.Add(new MarkupTypeModel() { Color = Colors.Cyan, Name = "Test"});
+
+            _parsingProfile = UserSettings.Instance.ParsingProfile;
+            SelectedImage = !string.IsNullOrEmpty(UserSettings.Instance.SelectedImageModel) 
+                ? Images.FirstOrDefault(image => image.Name == UserSettings.Instance.SelectedImageModel) 
+                : Images.FirstOrDefault();
+            SelectedMarkupType = !string.IsNullOrEmpty(UserSettings.Instance.SelectedMarkupType) 
+                ? MarkupTypes.FirstOrDefault(type => type.Name == UserSettings.Instance.SelectedMarkupType) 
+                : MarkupTypes.FirstOrDefault();
+        }
+
+        public void Save()
+        {
+            UserSettings.Instance.ParsingProfile = _parsingProfile;
+            UserSettings.Instance.SelectedImageModel = _selectedImage.HasValue ? _selectedImage.Value.Name : string.Empty;
+            UserSettings.Instance.SelectedMarkupType = _selectedMarkupType.HasValue ? _selectedMarkupType.Value.Name : string.Empty;
         }
 
         public void OnAddImage()

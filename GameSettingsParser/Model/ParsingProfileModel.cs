@@ -16,7 +16,7 @@ namespace GameSettingsParser.Model
         public class ImageInstance
         {
             public ImageModel Image { get; set; }
-            public ObservableCollection<MarkupInstance> MarkupInstances => [];
+            public ObservableCollection<MarkupInstance> MarkupInstances { get; init; } = [];
 
             public bool Equivalent(ImageInstance other)
             {
