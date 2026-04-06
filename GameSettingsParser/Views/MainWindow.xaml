@@ -1,0 +1,62 @@
+﻿<Window x:Class="GameSettingsParser.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewmodels="clr-namespace:GameSettingsParser.ViewModel"
+        xmlns:views="clr-namespace:GameSettingsParser.Views"
+        xmlns:controls="clr-namespace:GameSettingsParser.Controls"
+        d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowViewModel, IsDesignTimeCreatable=False}"
+        mc:Ignorable="d"
+        Title="MainWindow" SizeToContent="WidthAndHeight">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+        </Grid.RowDefinitions>
+        
+        <Grid MinHeight="400" MinWidth="720" Margin="10, 10" Background="LightGray">
+            <controls:MarkupCanvas ImageInstance="{Binding Path=SelectedImageInstance}" SelectedMarkupType="{Binding SelectedMarkupType}"/>
+        </Grid>
+        <StackPanel Grid.Row="1" Orientation="Horizontal">
+            <GroupBox Grid.Row="1" Margin="10, 0, 10, 10">
+                <GroupBox.Header>
+                    <Label>Image Control</Label>
+                </GroupBox.Header>
+                <StackPanel Orientation="Horizontal">
+                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=AddImageCommand}">
+                        <TextBlock Text="+" Margin="6, 0"/>
+                    </Button>
+                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=RemoveImageCommand}">
+                        <TextBlock Text="-" Margin="8, 0"/>
+                    </Button>
+                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=GoToPreviousImageCommand}">
+                        <TextBlock Text="&lt;" Margin="10, 0"/>
+                    </Button>
+                    <ComboBox MinWidth="200" Margin="2, 0" 
+                              ItemsSource="{Binding Path=Images}" 
+                              SelectedItem="{Binding Path=SelectedImage, Mode=TwoWay}" 
+                              />
+                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=GoToNextImageCommand}">
+                        <TextBlock Text="&gt;" Margin="10, 0"/>
+                    </Button>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Grid.Row="1" Margin="10, 0, 10, 10">
+                <GroupBox.Header>
+                    <Label>Markup Control</Label>
+                </GroupBox.Header>
+                <StackPanel Orientation="Horizontal">
+                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=AddMarkupTypeCommand}">
+                        <TextBlock Text="+" Margin="6, 0"/>
+                    </Button>
+                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=RemoveMarkupTypeCommand}">
+                        <TextBlock Text="-" Margin="8, 0"/>
+                    </Button>
+                    <ComboBox MinWidth="200" Margin="2, 0" ItemsSource="{Binding Path=MarkupTypes}" SelectedItem="{Binding Path=SelectedMarkupType, Mode=TwoWay}" />
+                </StackPanel>
+            </GroupBox>
+        </StackPanel>
+    </Grid>
+
+</Window>
