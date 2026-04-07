@@ -227,6 +227,7 @@ namespace GameSettingsParser.Adorners
             }
 
             OnTransformChanged?.Invoke(this, new RectangleOperationEventArgs { Rectangle = _rectangle });
+            e.Handled = true;
         }
 
         private void OnMoveDragDelta(object sender, DragDeltaEventArgs e)
@@ -236,6 +237,7 @@ namespace GameSettingsParser.Adorners
             double y = (double) _rectangle.GetValue(Canvas.TopProperty);
             _rectangle.SetValue(Canvas.TopProperty, y + e.VerticalChange);
             OnTransformChanged?.Invoke(this, new RectangleOperationEventArgs { Rectangle = _rectangle });
+            e.Handled = true;
         }
 
         protected override Size ArrangeOverride(Size finalSize)

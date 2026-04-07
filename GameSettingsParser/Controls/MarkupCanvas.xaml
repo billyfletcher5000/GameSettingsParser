@@ -5,14 +5,15 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:GameSettingsParser"
              mc:Ignorable="d"
+             Focusable="True"
+             PreviewKeyUp="OnKeyUp"
              x:Name="Control"
              d:DesignHeight="300" d:DesignWidth="300" LostFocus="OnLostFocus">
     <Grid x:Name="MainGrid" 
           Background="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, Path=Background}" 
           MouseLeftButtonDown="OnMouseLeftButtonDown"
           MouseLeftButtonUp="OnMouseLeftButtonUp"
-          MouseMove="OnMouseMove"
-          KeyUp="OnKeyUp">
+          MouseMove="OnMouseMove">
         <Image x:Name="MainImage"
             />
         <Canvas x:Name="MainCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>

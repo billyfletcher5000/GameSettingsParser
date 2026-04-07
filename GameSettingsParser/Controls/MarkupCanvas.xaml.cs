@@ -185,7 +185,8 @@ namespace GameSettingsParser.Controls
             _isDragActive = true;
             _dragStartPoint = e.GetPosition(MainCanvas);
             _dragEndPoint = _dragStartPoint;
-            _activeDragRectangle = CreateDrawableRectangle(SelectedMarkupType!.Value.Color, PointsToValidRect(_dragStartPoint, _dragEndPoint));
+            _activeDragRectangle = CreateDrawableRectangle(SelectedMarkupType!.Value.Color, PointsToValidRect(_dragStartPoint, _dragEndPoint), false);
+            e.Handled = true;
         }
 
         private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -210,6 +211,7 @@ namespace GameSettingsParser.Controls
             }
 
             _isDragActive = false;
+            e.Handled = true;
         }
 
         private void SelectRectangle(DrawableRectangle? rectangle)
@@ -221,10 +223,10 @@ namespace GameSettingsParser.Controls
 
         private void Deselect()
         {
-            if (_selectedRectangle == null)
+            if (_selectedRectangle == null || !_markupRectangles.Inverse.TryGetValue(_selectedRectangle, out var markupInstance))
                 return;
             
-            var color = _markupRectangles.Inverse[_selectedRectangle].Type.Color;
+            var color = markupInstance.Type.Color;
             _selectedRectangle.Stroke = new SolidColorBrush(color);
             _selectedRectangle = null;
         }
@@ -241,6 +243,7 @@ namespace GameSettingsParser.Controls
             {
                 _dragEndPoint = e.GetPosition(MainCanvas);
                 UpdateRectangleTransform(_activeDragRectangle, PointsToValidRect(_dragStartPoint, _dragEndPoint));
+                e.Handled = true;
             }
         }
 
@@ -305,7 +308,7 @@ namespace GameSettingsParser.Controls
             _markupRectangles[markupInstance] = drawableRectangle;
         }
 
-        private DrawableRectangle CreateDrawableRectangle(Color color, Rect widgetSpaceRect)
+        private DrawableRectangle CreateDrawableRectangle(Color color, Rect widgetSpaceRect, bool addAdorner = true)
         {
             var fillBrush = new SolidColorBrush(color)
             {
@@ -323,11 +326,14 @@ namespace GameSettingsParser.Controls
             MainCanvas.Children.Add(drawableRectangle);
             
             UpdateRectangleTransform(drawableRectangle, widgetSpaceRect);
-            var adorner = new RectangleTransformAdorner(drawableRectangle, new Thickness(6.0));
-            adorner.OnTransformChanged += OnAdornerTransformChanged;
-            adorner.OnSelected += OnAdornerSelected;
-            _rectangleTransformAdorners.Add(drawableRectangle, adorner);
-            
+            if (addAdorner)
+            {
+                var adorner = new RectangleTransformAdorner(drawableRectangle, new Thickness(6.0));
+                adorner.OnTransformChanged += OnAdornerTransformChanged;
+                adorner.OnSelected += OnAdornerSelected;
+                _rectangleTransformAdorners.Add(drawableRectangle, adorner);
+            }
+
             return drawableRectangle;
         }
 
@@ -386,6 +392,9 @@ namespace GameSettingsParser.Controls
 
         private void RemoveDrawableRectangle(DrawableRectangle drawableRectangle)
         {
+            if(_selectedRectangle == drawableRectangle)
+                Deselect();
+            
             if (_rectangleTransformAdorners.TryGetValue(drawableRectangle, out var adorner))
             {
                 adorner.OnTransformChanged -= OnAdornerTransformChanged;
@@ -401,6 +410,7 @@ namespace GameSettingsParser.Controls
         private void OnAdornerSelected(object? sender, RectangleTransformAdorner.RectangleOperationEventArgs e)
         {
             SelectRectangle(e.Rectangle);
+            Focus();
         }
 
         private void OnKeyUp(object sender, KeyEventArgs e)
