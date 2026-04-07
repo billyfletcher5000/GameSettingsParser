@@ -158,6 +158,7 @@ namespace GameSettingsParser.Controls
         private Point _dragStartPoint;
         private Point _dragEndPoint;
         private BidirectionalDictionary<ParsingProfileModel.MarkupInstance, DrawableRectangle> _markupRectangles = [];
+        private Dictionary<DrawableRectangle, RectangleTransformAdorner> _rectangleTransformAdorners = [];
         private DrawableRectangle? _activeDragRectangle = null;
         private DrawableRectangle? _selectedRectangle = null;
         private RectangleTransformAdorner? _selectedRectangleTransformAdorner = null;
@@ -197,16 +198,7 @@ namespace GameSettingsParser.Controls
             
             if (_selectedRectangle != null)
             {
-                var color = _markupRectangles.Inverse[_selectedRectangle].Type.Color;
-                _selectedRectangle.Stroke = new SolidColorBrush(color);
-                _selectedRectangle = null;
-            }
-            
-            if (TryGetExistingDisplayUnderMouse(out var rectangle) && !_isDragActive)
-            {
-                _selectedRectangle = rectangle;
-                _selectedRectangle!.Stroke = SelectedBrush;
-                _selectedRectangleTransformAdorner = new RectangleTransformAdorner(_selectedRectangle, new Thickness(6.0));
+                Deselect();
             }
             
             if (_isDragActive)
@@ -218,6 +210,23 @@ namespace GameSettingsParser.Controls
             }
 
             _isDragActive = false;
+        }
+
+        private void SelectRectangle(DrawableRectangle? rectangle)
+        {
+            Deselect();
+            _selectedRectangle = rectangle;
+            _selectedRectangle!.Stroke = SelectedBrush;
+        }
+
+        private void Deselect()
+        {
+            if (_selectedRectangle == null)
+                return;
+            
+            var color = _markupRectangles.Inverse[_selectedRectangle].Type.Color;
+            _selectedRectangle.Stroke = new SolidColorBrush(color);
+            _selectedRectangle = null;
         }
 
         private void OnMouseMove(object sender, MouseEventArgs e)
@@ -242,18 +251,11 @@ namespace GameSettingsParser.Controls
 
         private bool IsExistingDisplayUnderMouse()
         {
-            return _markupRectangles.Any(markupInstance => markupInstance.Value.IsMouseDirectlyOver);
-        }
-
-        private bool TryGetExistingDisplayUnderMouse(out DrawableRectangle? rectangle)
-        {
-            rectangle = _markupRectangles.FirstOrDefault(markupInstance => markupInstance.Value.IsMouseDirectlyOver).Value;
-            return rectangle != null;
+            return _markupRectangles.Any(markupInstance => markupInstance.Value.IsMouseOver);
         }
         
         private void ClearDrag()
         {
-            Console.WriteLine($"Clear: Drag start: {_dragStartPoint} | Drag end: {_dragEndPoint}");;
             _dragStartPoint = new Point(double.NaN, double.NaN);
             _dragEndPoint = new Point(double.NaN, double.NaN);
             _isDragActive = false;
@@ -321,8 +323,22 @@ namespace GameSettingsParser.Controls
             MainCanvas.Children.Add(drawableRectangle);
             
             UpdateRectangleTransform(drawableRectangle, widgetSpaceRect);
+            var adorner = new RectangleTransformAdorner(drawableRectangle, new Thickness(6.0));
+            adorner.OnTransformChanged += OnAdornerTransformChanged;
+            adorner.OnSelected += OnAdornerSelected;
+            _rectangleTransformAdorners.Add(drawableRectangle, adorner);
             
             return drawableRectangle;
+        }
+
+        private void OnAdornerTransformChanged(object? sender, RectangleTransformAdorner.RectangleOperationEventArgs e)
+        {
+            if (_markupRectangles.Inverse.TryGetValue(e.Rectangle, out var markupInstance))
+            {
+                Point startPoint = new Point((double)e.Rectangle.GetValue(Canvas.LeftProperty), (double)e.Rectangle.GetValue(Canvas.TopProperty));
+                Point endPoint = new Point(startPoint.X + e.Rectangle.ActualWidth, startPoint.Y + e.Rectangle.ActualHeight);
+                markupInstance.Rect = new Rect(TransformPointToImageSpace(startPoint), TransformPointToImageSpace(endPoint));
+            }
         }
 
         private void UpdateRectangleTransform(DrawableRectangle rectangle, Rect widgetSpaceRect)
@@ -352,18 +368,46 @@ namespace GameSettingsParser.Controls
 
         private void CreateInitialDisplays()
         {
+            ClearMarkupDisplays();
+            
             foreach (var markupInstance in ImageInstance.MarkupInstances)
             {
                 CreateMarkupDisplays(markupInstance);
             }
         }
 
-        private void ClearInstancedDisplays()
+        private void ClearMarkupDisplays()
         {
             foreach (var markupRectangle in _markupRectangles.Values)
-                MainCanvas.Children.Remove(markupRectangle);
+                RemoveDrawableRectangle(markupRectangle);
             
             _markupRectangles.Clear();
+        }
+
+        private void RemoveDrawableRectangle(DrawableRectangle drawableRectangle)
+        {
+            if (_rectangleTransformAdorners.TryGetValue(drawableRectangle, out var adorner))
+            {
+                adorner.OnTransformChanged -= OnAdornerTransformChanged;
+                adorner.OnSelected -= OnAdornerSelected;
+                adorner.Destroy();
+                _rectangleTransformAdorners.Remove(drawableRectangle);
+            }
+            
+            _markupRectangles.Inverse.Remove(drawableRectangle);
+            MainCanvas.Children.Remove(drawableRectangle);
+        }
+
+        private void OnAdornerSelected(object? sender, RectangleTransformAdorner.RectangleOperationEventArgs e)
+        {
+            SelectRectangle(e.Rectangle);
+        }
+
+        private void OnKeyUp(object sender, KeyEventArgs e)
+        {
+            //TODO: Fix not firing
+            if(e.Key == Key.Delete && _selectedRectangle != null)
+                RemoveDrawableRectangle(_selectedRectangle);
         }
     }
 }
