@@ -8,14 +8,18 @@
              Focusable="True"
              PreviewKeyUp="OnKeyUp"
              x:Name="Control"
-             d:DesignHeight="300" d:DesignWidth="300" LostFocus="OnLostFocus">
+             d:DesignHeight="300" d:DesignWidth="300" LostFocus="OnLostFocus" SizeChanged="OnMainImageSizeChanged">
     <Grid x:Name="MainGrid" 
           Background="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, Path=Background}" 
           MouseLeftButtonDown="OnMouseLeftButtonDown"
           MouseLeftButtonUp="OnMouseLeftButtonUp"
           MouseMove="OnMouseMove">
         <Image x:Name="MainImage"
-            />
-        <Canvas x:Name="MainCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+               Stretch="Uniform"
+               SnapsToDevicePixels="True"
+               SizeChanged="OnMainImageSizeChanged"/>
+        <Canvas x:Name="MainCanvas"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"/>
     </Grid>
 </UserControl>

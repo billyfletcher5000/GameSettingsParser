@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using GameSettingsParser.Adorners;
 using GameSettingsParser.Model;
+using GameSettingsParser.Utility;
 using Point = System.Windows.Point;
 using DrawableRectangle = System.Windows.Shapes.Rectangle;
 
@@ -37,6 +38,7 @@ namespace GameSettingsParser.Controls
                 MainImage.InvalidateMeasure();
                 MainImage.InvalidateArrange();
                 MainImage.UpdateLayout();
+                UpdateCanvasTransform();
                 CreateInitialDisplays();
             }
         }
@@ -57,6 +59,7 @@ namespace GameSettingsParser.Controls
                         bitmapImage.BeginInit();
                         bitmapImage.UriSource = new Uri(ImageInstance.Image.Path);
                         bitmapImage.EndInit();
+                        _imageSize = new Size(bitmapImage.PixelWidth, bitmapImage.PixelHeight);
                         MainImage.Source = bitmapImage;
                     }
                 }
@@ -154,26 +157,27 @@ namespace GameSettingsParser.Controls
         public bool HasSelectedMarkupType => SelectedMarkupType != null;
         
         private bool _isDragActive = false;
-        private bool _isManipulationActive = false;
         private Point _dragStartPoint;
         private Point _dragEndPoint;
-        private BidirectionalDictionary<ParsingProfileModel.MarkupInstance, DrawableRectangle> _markupRectangles = [];
-        private Dictionary<DrawableRectangle, RectangleTransformAdorner> _rectangleTransformAdorners = [];
+        private Size _imageSize;
+        private readonly BidirectionalDictionary<ParsingProfileModel.MarkupInstance, DrawableRectangle> _markupRectangles = [];
+        private readonly Dictionary<DrawableRectangle, RectangleTransformAdorner> _rectangleTransformAdorners = [];
         private DrawableRectangle? _activeDragRectangle = null;
         private DrawableRectangle? _selectedRectangle = null;
-        private RectangleTransformAdorner? _selectedRectangleTransformAdorner = null;
 
         public MarkupCanvas()
         {
             InitializeComponent();
-            if(ImageInstance != null)
+            if (ImageInstance != null)
+            {
+                UpdateCanvasTransform();
                 CreateInitialDisplays();
-            
+            }
         }
 
         private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (!HasImageInstance || !HasSelectedMarkupType || _isManipulationActive || _isDragActive)
+            if (!HasImageInstance || !HasSelectedMarkupType || _isDragActive)
             {
                 ClearDrag();
                 return;
@@ -183,15 +187,31 @@ namespace GameSettingsParser.Controls
                 return;
             
             _isDragActive = true;
-            _dragStartPoint = e.GetPosition(MainCanvas);
+            _dragStartPoint = TransformPointToImageSpace(e.GetPosition(MainImage));
             _dragEndPoint = _dragStartPoint;
             _activeDragRectangle = CreateDrawableRectangle(SelectedMarkupType!.Value.Color, PointsToValidRect(_dragStartPoint, _dragEndPoint), false);
             e.Handled = true;
         }
 
+        private void OnMouseMove(object sender, MouseEventArgs e)
+        {
+            if (!HasImageInstance || !HasSelectedMarkupType)
+            {
+                ClearDrag();
+                return;
+            }
+
+            if (_isDragActive && _activeDragRectangle != null)
+            {
+                _dragEndPoint = TransformPointToImageSpace(e.GetPosition(MainImage));
+                UpdateRectangleTransform(_activeDragRectangle, PointsToValidRect(_dragStartPoint, _dragEndPoint));
+                e.Handled = true;
+            }
+        }
+
         private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (!HasImageInstance || !HasSelectedMarkupType || _isManipulationActive)
+            if (!HasImageInstance || !HasSelectedMarkupType)
             {
                 ClearDrag();
                 return;
@@ -204,7 +224,7 @@ namespace GameSettingsParser.Controls
             
             if (_isDragActive)
             {
-                CreateMarkupInstance(_dragStartPoint, e.GetPosition(this));
+                CreateMarkupInstance(_dragStartPoint, TransformPointToImageSpace(e.GetPosition(MainImage)));
 
                 MainCanvas.Children.Remove(_activeDragRectangle);
                 _activeDragRectangle = null;
@@ -212,6 +232,13 @@ namespace GameSettingsParser.Controls
 
             _isDragActive = false;
             e.Handled = true;
+        }
+        
+        private void ClearDrag()
+        {
+            _dragStartPoint = new Point(double.NaN, double.NaN);
+            _dragEndPoint = new Point(double.NaN, double.NaN);
+            _isDragActive = false;
         }
 
         private void SelectRectangle(DrawableRectangle? rectangle)
@@ -231,45 +258,34 @@ namespace GameSettingsParser.Controls
             _selectedRectangle = null;
         }
 
-        private void OnMouseMove(object sender, MouseEventArgs e)
-        {
-            if (!HasImageInstance || !HasSelectedMarkupType)
-            {
-                ClearDrag();
-                return;
-            }
-
-            if (_isDragActive && _activeDragRectangle != null)
-            {
-                _dragEndPoint = e.GetPosition(MainCanvas);
-                UpdateRectangleTransform(_activeDragRectangle, PointsToValidRect(_dragStartPoint, _dragEndPoint));
-                e.Handled = true;
-            }
-        }
-
         private void OnLostFocus(object sender, RoutedEventArgs e)
         {
             ClearDrag();
+        }
+
+        private void OnKeyUp(object sender, KeyEventArgs e)
+        {
+            //TODO: Fix not firing
+            if(e.Key == Key.Delete && _selectedRectangle != null)
+                RemoveDrawableRectangle(_selectedRectangle);
         }
 
         private bool IsExistingDisplayUnderMouse()
         {
             return _markupRectangles.Any(markupInstance => markupInstance.Value.IsMouseOver);
         }
-        
-        private void ClearDrag()
-        {
-            _dragStartPoint = new Point(double.NaN, double.NaN);
-            _dragEndPoint = new Point(double.NaN, double.NaN);
-            _isDragActive = false;
-        }
 
         private Point TransformPointToImageSpace(Point point)
         {
+            if (MainImage.Source is not BitmapSource bitmap)
+                throw new InvalidOperationException("MainImage.Source is not a BitmapSource");
+
+            var imageSize = new Size(bitmap.PixelWidth, bitmap.PixelHeight);
+            
             var xScale = point.X / MainImage.ActualWidth;
             var yScale = point.Y / MainImage.ActualHeight;
 
-            return new Point(MainImage.Source.Width * xScale, MainImage.Source.Height * yScale);
+            return new Point(imageSize.Width * xScale, imageSize.Height * yScale);
         }
 
         private void CreateMarkupInstance(Point startPoint, Point endPoint)
@@ -279,10 +295,10 @@ namespace GameSettingsParser.Controls
             
             var newInstance = new ParsingProfileModel.MarkupInstance()
             {
-                Rect = new Rect(TransformPointToImageSpace(startPoint), TransformPointToImageSpace(endPoint)),
+                Rect = new Rect(startPoint, endPoint),
                 Type = SelectedMarkupType!.Value
             };
-            
+        
             ImageInstance.MarkupInstances.Add(newInstance);
         }
 
@@ -290,25 +306,12 @@ namespace GameSettingsParser.Controls
         {
             if (_markupRectangles.ContainsKey(markupInstance))
                 return;
-
-            var transformedRect = markupInstance.Rect;
             
-            var xScale = MainImage.ActualWidth / MainImage.Source.Width;
-            var yScale = MainImage.ActualHeight / MainImage.Source.Height;
-            
-            transformedRect.X *= xScale;
-            transformedRect.Y *= yScale;
-            transformedRect.Width *= xScale;
-            transformedRect.Height *= yScale;
-            
-            var color = markupInstance.Type.Color;
-
-            var drawableRectangle = CreateDrawableRectangle(color, transformedRect);
-
+            var drawableRectangle = CreateDrawableRectangle(markupInstance.Type.Color, markupInstance.Rect);
             _markupRectangles[markupInstance] = drawableRectangle;
         }
 
-        private DrawableRectangle CreateDrawableRectangle(Color color, Rect widgetSpaceRect, bool addAdorner = true)
+        private DrawableRectangle CreateDrawableRectangle(Color color, Rect imageSpaceRect, bool addAdorner = true)
         {
             var fillBrush = new SolidColorBrush(color)
             {
@@ -325,7 +328,7 @@ namespace GameSettingsParser.Controls
 
             MainCanvas.Children.Add(drawableRectangle);
             
-            UpdateRectangleTransform(drawableRectangle, widgetSpaceRect);
+            UpdateRectangleTransform(drawableRectangle, imageSpaceRect);
             if (addAdorner)
             {
                 var adorner = new RectangleTransformAdorner(drawableRectangle, new Thickness(6.0));
@@ -337,34 +340,24 @@ namespace GameSettingsParser.Controls
             return drawableRectangle;
         }
 
-        private void OnAdornerTransformChanged(object? sender, RectangleTransformAdorner.RectangleOperationEventArgs e)
+        private void UpdateRectangleTransform(DrawableRectangle rectangle, Rect imageSpaceRect)
         {
-            if (_markupRectangles.Inverse.TryGetValue(e.Rectangle, out var markupInstance))
+            if (imageSpaceRect.Width < 0)
             {
-                Point startPoint = new Point((double)e.Rectangle.GetValue(Canvas.LeftProperty), (double)e.Rectangle.GetValue(Canvas.TopProperty));
-                Point endPoint = new Point(startPoint.X + e.Rectangle.ActualWidth, startPoint.Y + e.Rectangle.ActualHeight);
-                markupInstance.Rect = new Rect(TransformPointToImageSpace(startPoint), TransformPointToImageSpace(endPoint));
-            }
-        }
-
-        private void UpdateRectangleTransform(DrawableRectangle rectangle, Rect widgetSpaceRect)
-        {
-            if (widgetSpaceRect.Width < 0)
-            {
-                widgetSpaceRect.X -= Math.Abs(widgetSpaceRect.Width);
-                widgetSpaceRect.Width = Math.Max(Math.Abs(widgetSpaceRect.Width), 1);
+                imageSpaceRect.X -= Math.Abs(imageSpaceRect.Width);
+                imageSpaceRect.Width = Math.Max(Math.Abs(imageSpaceRect.Width), 1);
             }
 
-            if (widgetSpaceRect.Height < 0)
+            if (imageSpaceRect.Height < 0)
             {
-                widgetSpaceRect.Y -= Math.Abs(widgetSpaceRect.Height);
-                widgetSpaceRect.Height = Math.Max(Math.Abs(widgetSpaceRect.Height), 1);
+                imageSpaceRect.Y -= Math.Abs(imageSpaceRect.Height);
+                imageSpaceRect.Height = Math.Max(Math.Abs(imageSpaceRect.Height), 1);
             }
             
-            rectangle.SetValue(Canvas.LeftProperty, widgetSpaceRect.X);
-            rectangle.SetValue(Canvas.TopProperty, widgetSpaceRect.Y);
-            rectangle.SetValue(Canvas.WidthProperty, widgetSpaceRect.Width);
-            rectangle.SetValue(Canvas.HeightProperty, widgetSpaceRect.Height);
+            rectangle.SetValue(Canvas.LeftProperty, imageSpaceRect.X);
+            rectangle.SetValue(Canvas.TopProperty, imageSpaceRect.Y);
+            rectangle.SetValue(Canvas.WidthProperty, imageSpaceRect.Width);
+            rectangle.SetValue(Canvas.HeightProperty, imageSpaceRect.Height);
         }
 
         private Rect PointsToValidRect(Point pointA, Point pointB)
@@ -407,17 +400,39 @@ namespace GameSettingsParser.Controls
             MainCanvas.Children.Remove(drawableRectangle);
         }
 
+        private void OnAdornerTransformChanged(object? sender, RectangleTransformAdorner.RectangleOperationEventArgs e)
+        {
+            if (_markupRectangles.Inverse.TryGetValue(e.Rectangle, out var markupInstance))
+            {
+                Point startPoint = new Point((double)e.Rectangle.GetValue(Canvas.LeftProperty), (double)e.Rectangle.GetValue(Canvas.TopProperty));
+                Point endPoint = new Point(startPoint.X + e.Rectangle.ActualWidth, startPoint.Y + e.Rectangle.ActualHeight);
+                markupInstance.Rect = new Rect(TransformPointToImageSpace(startPoint), TransformPointToImageSpace(endPoint));
+            }
+        }
+
         private void OnAdornerSelected(object? sender, RectangleTransformAdorner.RectangleOperationEventArgs e)
         {
             SelectRectangle(e.Rectangle);
             Focus();
         }
 
-        private void OnKeyUp(object sender, KeyEventArgs e)
+        private void OnMainImageSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            //TODO: Fix not firing
-            if(e.Key == Key.Delete && _selectedRectangle != null)
-                RemoveDrawableRectangle(_selectedRectangle);
+            UpdateCanvasTransform();
+        }
+
+        private void UpdateCanvasTransform()
+        {
+            if (MainImage.Source is not BitmapSource bitmap)
+                return;
+
+            var imageSize = new Size(bitmap.PixelWidth, bitmap.PixelHeight);
+            var viewSize = new Size(MainGrid.ActualWidth, MainGrid.ActualHeight);
+
+            MainCanvas.RenderTransform = OverlayTransformHelper.CreateImageToViewTransform(
+                imageSize,
+                viewSize,
+                MainImage.Stretch);
         }
     }
 }
