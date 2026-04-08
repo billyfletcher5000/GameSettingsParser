@@ -56,6 +56,14 @@
                     <ComboBox MinWidth="200" Margin="2, 0" ItemsSource="{Binding Path=MarkupTypes}" SelectedItem="{Binding Path=SelectedMarkupType, Mode=TwoWay}" />
                 </StackPanel>
             </GroupBox>
+            <GroupBox Grid.Row="1" Margin="10, 0, 10, 10">
+                <GroupBox.Header>
+                    <Label>Generation</Label>
+                </GroupBox.Header>
+                <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=GenerateTesseractDataCommand}">
+                    <TextBlock Text="Generate Tessseract" Margin="8, 0"/>
+                </Button>
+            </GroupBox>
         </StackPanel>
     </Grid>
 

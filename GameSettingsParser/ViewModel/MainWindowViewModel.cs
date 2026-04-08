@@ -1,13 +1,18 @@
 ﻿using System.Collections.ObjectModel;
+using System.Drawing;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using GameSettingsParser.Model;
 using GameSettingsParser.Settings;
 using GameSettingsParser.Utility;
 using GameSettingsParser.Views;
+using Tesseract;
 using Path = System.IO.Path;
+using Rect = System.Windows.Rect;
 
 namespace GameSettingsParser.ViewModel
 {
@@ -58,6 +63,8 @@ namespace GameSettingsParser.ViewModel
         
         public ICommand AddMarkupTypeCommand { get; }
         public ICommand RemoveMarkupTypeCommand { get; }
+        
+        public ICommand GenerateTesseractDataCommand { get; }
 
         public MainWindowViewModel()
         {
@@ -68,6 +75,8 @@ namespace GameSettingsParser.ViewModel
             
             AddMarkupTypeCommand = new DelegateCommand(AddMarkupType);
             RemoveMarkupTypeCommand = new DelegateCommand(RemoveMarkupType);
+            
+            GenerateTesseractDataCommand = new DelegateCommand(GenerateTesseractData);
 
             _parsingProfile = UserSettings.Instance.ParsingProfile;
             SelectedImage = !string.IsNullOrEmpty(UserSettings.Instance.SelectedImageModel) 
@@ -183,6 +192,59 @@ namespace GameSettingsParser.ViewModel
         public bool CanRemoveMarkupType()
         {
             return SelectedMarkupType.HasValue;
+        }
+
+        public void GenerateTesseractData()
+        {
+            try
+            {
+                using (var engine = new TesseractEngine(@"./TesseractData", "eng", EngineMode.Default))
+                {
+                    BitmapImage bitmapImage =  new BitmapImage();
+                    bitmapImage.BeginInit();
+                    bitmapImage.UriSource = new Uri(SelectedImageInstance.Image.Path);
+                    bitmapImage.EndInit();
+
+                    using (var img = PixConverter.ToPix(BitmapImage2Bitmap(bitmapImage)))
+                    {
+                        using (var page = engine.Process(img))
+                        {
+                            var text = page.GetText();
+                            Console.WriteLine("Mean confidence: {0}", page.GetMeanConfidence());
+                            Console.WriteLine("Text (GetText): \r\n{0}", text);
+
+                            var regions = page.GetSegmentedRegions(PageIteratorLevel.TextLine);
+                            foreach (var rectangle in regions)
+                            {
+                                SelectedImageInstance?.MarkupInstances.Add(new ParsingProfileModel.MarkupInstance()
+                                {
+                                    Rect = new Rect(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height),
+                                    Type = SelectedMarkupType!.Value
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.Message);
+            }
+        }
+        
+        private Bitmap BitmapImage2Bitmap(BitmapImage bitmapImage)
+        {
+            // BitmapImage bitmapImage = new BitmapImage(new Uri("../Images/test.png", UriKind.Relative));
+
+            using(MemoryStream outStream = new MemoryStream())
+            {
+                BitmapEncoder enc = new BmpBitmapEncoder();
+                enc.Frames.Add(BitmapFrame.Create(bitmapImage));
+                enc.Save(outStream);
+                System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap(outStream);
+
+                return new Bitmap(bitmap);
+            }
         }
     }
 }

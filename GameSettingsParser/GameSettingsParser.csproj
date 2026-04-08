@@ -11,8 +11,11 @@
     <ItemGroup>
       <PackageReference Include="BidirectionalDictionary" Version="1.4.0" />
       <PackageReference Include="IronOcr" Version="2026.4.1" />
+      <PackageReference Include="OpenCvSharp4" Version="4.13.0.20260330" />
       <PackageReference Include="Prism.Wpf" Version="9.0.537" />
       <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.5" />
+      <PackageReference Include="Tesseract" Version="5.2.0" />
+      <PackageReference Include="Tesseract.Drawing" Version="5.2.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -31,6 +34,9 @@
     <ItemGroup>
       <None Update="App.config">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TesseractData\eng.traineddata">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>
 
