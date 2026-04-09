@@ -1,31 +1,13 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Windows;
 using GameSettingsParser.Utility;
 
 namespace GameSettingsParser.Model
 {
     public class ParsingProfileModel
     {
-        public record struct MarkupInstance
-        {
-            public MarkupTypeModel Type { get; set; }
-            public Rect Rect { get; set; }
-        }
-
-        public class ImageInstance
-        {
-            public ImageModel Image { get; set; }
-            public ObservableCollection<MarkupInstance> MarkupInstances { get; init; } = [];
-
-            public bool Equivalent(ImageInstance other)
-            {
-                return Image.Equals(other.Image) && MarkupInstances.SequenceEqual(other.MarkupInstances);
-            }
-        }
-
         public string Name { get; set; } = "Unsaved Profile";
-        public List<ImageInstance> ImageInstances { get; } = [];
+        public List<ImageInstanceModel> ImageInstances { get; } = [];
         public ObservableCollection<MarkupTypeModel> MarkupTypes { get; } = [];
         public ObservableCollection<ImageModel> Images { get; } = [];
 
@@ -50,6 +32,11 @@ namespace GameSettingsParser.Model
         {
             MarkupTypes.Remove(markupType);
             ImageInstances.ForEach(imageInstance => imageInstance.MarkupInstances.RemoveAll(markupInstance => markupInstance.Type == markupType));
+        }
+
+        public MarkupTypeModel GetMarkupTypeByName(string name)
+        {
+            return MarkupTypes.First(type => type.Name == name);
         }
     }
 }

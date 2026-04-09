@@ -17,15 +17,15 @@ namespace GameSettingsParser.Controls
     {
         public static readonly DependencyProperty ImageInstanceProperty =
             DependencyProperty.Register(nameof(ImageInstance),
-                typeof(ParsingProfileModel.ImageInstance), typeof(MarkupCanvas), new PropertyMetadata(OnImageInstanceChanged));
+                typeof(ImageInstanceModel), typeof(MarkupCanvas), new PropertyMetadata(OnImageInstanceChanged));
 
         private static void OnImageInstanceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var control = (MarkupCanvas)d;
-            control.HandleImageInstanceChanged(((ParsingProfileModel.ImageInstance)e.OldValue), ((ParsingProfileModel.ImageInstance)e.NewValue));
+            control.HandleImageInstanceChanged(((ImageInstanceModel)e.OldValue), ((ImageInstanceModel)e.NewValue));
         }
 
-        private void HandleImageInstanceChanged(ParsingProfileModel.ImageInstance eOldValue, ParsingProfileModel.ImageInstance eNewValue)
+        private void HandleImageInstanceChanged(ImageInstanceModel eOldValue, ImageInstanceModel eNewValue)
         {
             if (eNewValue != null)
             {
@@ -43,9 +43,9 @@ namespace GameSettingsParser.Controls
             }
         }
 
-        public ParsingProfileModel.ImageInstance ImageInstance
+        public ImageInstanceModel ImageInstance
         {
-            get => (ParsingProfileModel.ImageInstance)GetValue(ImageInstanceProperty);
+            get => (ImageInstanceModel)GetValue(ImageInstanceProperty);
             set
             {
                 if(!ImageInstance.Equivalent(value))
@@ -124,6 +124,10 @@ namespace GameSettingsParser.Controls
                     RemoveMarkupInstances(e.OldItems);
                     AddMarkupInstances(e.NewItems);
                     break;
+                
+                case NotifyCollectionChangedAction.Reset:
+                    ClearMarkupDisplays();
+                    break;
             }
         }
 
@@ -132,7 +136,7 @@ namespace GameSettingsParser.Controls
             if (markupInstances == null) 
                 return;
 
-            foreach (ParsingProfileModel.MarkupInstance addedItem in markupInstances)
+            foreach (MarkupInstanceModel addedItem in markupInstances)
             {
                 CreateMarkupDisplays(addedItem);
             }
@@ -143,7 +147,7 @@ namespace GameSettingsParser.Controls
             if (markupInstances == null) 
                 return;
             
-            foreach (ParsingProfileModel.MarkupInstance removedItem in markupInstances)
+            foreach (MarkupInstanceModel removedItem in markupInstances)
             {
                 if (!_markupRectangles.TryGetValue(removedItem, out var value)) 
                     continue;
@@ -160,7 +164,7 @@ namespace GameSettingsParser.Controls
         private Point _dragStartPoint;
         private Point _dragEndPoint;
         private Size _imageSize;
-        private readonly BidirectionalDictionary<ParsingProfileModel.MarkupInstance, DrawableRectangle> _markupRectangles = [];
+        private readonly BidirectionalDictionary<MarkupInstanceModel, DrawableRectangle> _markupRectangles = [];
         private readonly Dictionary<DrawableRectangle, RectangleTransformAdorner> _rectangleTransformAdorners = [];
         private DrawableRectangle? _activeDragRectangle = null;
         private DrawableRectangle? _selectedRectangle = null;
@@ -293,7 +297,7 @@ namespace GameSettingsParser.Controls
             if (!HasImageInstance || !HasSelectedMarkupType)
                 return;
             
-            var newInstance = new ParsingProfileModel.MarkupInstance()
+            var newInstance = new MarkupInstanceModel()
             {
                 Rect = new Rect(startPoint, endPoint),
                 Type = SelectedMarkupType!.Value
@@ -302,7 +306,7 @@ namespace GameSettingsParser.Controls
             ImageInstance.MarkupInstances.Add(newInstance);
         }
 
-        private void CreateMarkupDisplays(ParsingProfileModel.MarkupInstance markupInstance)
+        private void CreateMarkupDisplays(MarkupInstanceModel markupInstance)
         {
             if (_markupRectangles.ContainsKey(markupInstance))
                 return;

@@ -34,7 +34,7 @@ namespace GameSettingsParser.ViewModel
                     var newSelectedImageInstance = _parsingProfile.ImageInstances.FirstOrDefault(instance => instance.Image == _selectedImage);
                     if (newSelectedImageInstance == null)
                     {
-                        newSelectedImageInstance = new ParsingProfileModel.ImageInstance() { Image = _selectedImage.Value };
+                        newSelectedImageInstance = new ImageInstanceModel() { Image = _selectedImage.Value };
                         _parsingProfile.ImageInstances.Add(newSelectedImageInstance);
                     }
 
@@ -43,8 +43,8 @@ namespace GameSettingsParser.ViewModel
             }
         }
 
-        private ParsingProfileModel.ImageInstance? _selectedImageInstance;
-        public ParsingProfileModel.ImageInstance? SelectedImageInstance => _selectedImageInstance;
+        private ImageInstanceModel? _selectedImageInstance;
+        public ImageInstanceModel? SelectedImageInstance => _selectedImageInstance;
         
 
         public ObservableCollection<MarkupTypeModel> MarkupTypes => _parsingProfile.MarkupTypes;
@@ -63,20 +63,24 @@ namespace GameSettingsParser.ViewModel
         
         public ICommand AddMarkupTypeCommand { get; }
         public ICommand RemoveMarkupTypeCommand { get; }
+        public ICommand ClearTypeInstancesCommand { get; }
+        public ICommand ClearAllInstancesCommand { get; }
         
         public ICommand GenerateTesseractDataCommand { get; }
 
         public MainWindowViewModel()
         {
             AddImageCommand = new DelegateCommand(OnAddImage);
-            RemoveImageCommand = new DelegateCommand(OnRemoveImage, CanRemoveImage);
+            RemoveImageCommand = new DelegateCommand(OnRemoveImage, () => SelectedImage.HasValue);
             GoToNextImageCommand = new DelegateCommand(GoToNextImage, CanTraverseImages);
             GoToPreviousImageCommand = new DelegateCommand(GoToPreviousImage, CanTraverseImages);
             
             AddMarkupTypeCommand = new DelegateCommand(AddMarkupType);
-            RemoveMarkupTypeCommand = new DelegateCommand(RemoveMarkupType);
+            RemoveMarkupTypeCommand = new DelegateCommand(RemoveMarkupType, () => SelectedMarkupType.HasValue);
+            ClearTypeInstancesCommand = new DelegateCommand(ClearCurrentTypeMarkupInstances, () => SelectedImage.HasValue && SelectedMarkupType.HasValue);
+            ClearAllInstancesCommand = new DelegateCommand(ClearAllMarkupInstances, () => SelectedImage.HasValue);
             
-            GenerateTesseractDataCommand = new DelegateCommand(GenerateTesseractData);
+            GenerateTesseractDataCommand = new DelegateCommand(GenerateTesseractData, () => SelectedMarkupType.HasValue && SelectedImage.HasValue);
 
             _parsingProfile = UserSettings.Instance.ParsingProfile;
             SelectedImage = !string.IsNullOrEmpty(UserSettings.Instance.SelectedImageModel) 
@@ -138,12 +142,7 @@ namespace GameSettingsParser.ViewModel
             GoToPreviousImage();
             _parsingProfile.RemoveImageModel(imageModelToRemove);
         }
-
-        public bool CanRemoveImage()
-        {
-            return SelectedImage.HasValue;
-        }
-
+        
         public void GoToPreviousImage()
         {
             SelectedImage = SelectedImage.HasValue ? Images.GetPrevious(SelectedImage.Value) : Images.Last();
@@ -161,7 +160,7 @@ namespace GameSettingsParser.ViewModel
 
         public void AddMarkupType()
         {
-            MarkupTypeDialog dialog = new MarkupTypeDialog();
+            MarkupTypeDialog dialog = new MarkupTypeDialog(_parsingProfile);
 
             if (dialog.ShowDialog() == true)
             {
@@ -180,7 +179,7 @@ namespace GameSettingsParser.ViewModel
             var markupTypeToRemove = SelectedMarkupType.Value;
             if (_parsingProfile.IsMarkupTypeInUse(markupTypeToRemove))
             {
-                var result = MessageBox.Show("Are you sure you want to remove this markup type? It's still in use", "Warning", MessageBoxButton.OKCancel);
+                var result = MessageBox.Show("Are you sure you want to remove this markup type? It's still in use!", "Warning", MessageBoxButton.OKCancel);
                 if (result == MessageBoxResult.Cancel)
                     return;
             }
@@ -194,6 +193,16 @@ namespace GameSettingsParser.ViewModel
             return SelectedMarkupType.HasValue;
         }
 
+        public void ClearAllMarkupInstances()
+        {
+            SelectedImageInstance?.MarkupInstances.Clear();
+        }
+        
+        private void ClearCurrentTypeMarkupInstances()
+        {
+            SelectedImageInstance?.MarkupInstances.RemoveAll(instance => instance.Type == SelectedMarkupType);
+        }
+
         public void GenerateTesseractData()
         {
             try
@@ -204,7 +213,7 @@ namespace GameSettingsParser.ViewModel
                     bitmapImage.BeginInit();
                     bitmapImage.UriSource = new Uri(SelectedImageInstance.Image.Path);
                     bitmapImage.EndInit();
-
+                    
                     using (var img = PixConverter.ToPix(BitmapImage2Bitmap(bitmapImage)))
                     {
                         using (var page = engine.Process(img))
@@ -216,7 +225,7 @@ namespace GameSettingsParser.ViewModel
                             var regions = page.GetSegmentedRegions(PageIteratorLevel.TextLine);
                             foreach (var rectangle in regions)
                             {
-                                SelectedImageInstance?.MarkupInstances.Add(new ParsingProfileModel.MarkupInstance()
+                                SelectedImageInstance?.MarkupInstances.Add(new MarkupInstanceModel()
                                 {
                                     Rect = new Rect(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height),
                                     Type = SelectedMarkupType!.Value

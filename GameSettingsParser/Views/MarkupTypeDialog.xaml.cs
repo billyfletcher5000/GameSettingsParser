@@ -47,19 +47,25 @@ public partial class MarkupTypeDialog : Window
     private MarkupTypeModel _markupType;
     
     public ObservableCollection<ColorOption> ColorOptions { get; init; }
+
+    public IEnumerable<string> PositionedRelativeToOptions => _parsingProfile.MarkupTypes.Select(markupType => markupType.Name);
     
-    public MarkupTypeDialog()
+    private ParsingProfileModel _parsingProfile;
+    
+    public MarkupTypeDialog(ParsingProfileModel parsingProfile)
     {
         Title = "New Markup Type";
         
+        _parsingProfile = parsingProfile; 
         ColorOptions = new ObservableCollection<ColorOption>(GetColorOptionList());
         _markupType.Color = Colors.Blue;
         TypeColor = ColorOptions.First(option => option.Color == _markupType.Color);
         InitializeComponent();
     }
 
-    public MarkupTypeDialog(MarkupTypeModel markupTypeModel)
+    public MarkupTypeDialog(ParsingProfileModel parsingProfile, MarkupTypeModel markupTypeModel)
     {
+        _parsingProfile = parsingProfile;
         _markupType = markupTypeModel;
         Title = "Edit Markup Type";
         ColorOptions = new ObservableCollection<ColorOption>(GetColorOptionList());
