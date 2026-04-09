@@ -160,7 +160,7 @@ namespace GameSettingsParser.ViewModel
 
         public void AddMarkupType()
         {
-            MarkupTypeDialog dialog = new MarkupTypeDialog(_parsingProfile);
+            MarkupTypeDialog dialog = new MarkupTypeDialog();
 
             if (dialog.ShowDialog() == true)
             {
