@@ -63,6 +63,7 @@ namespace GameSettingsParser.ViewModel
         
         public ICommand AddMarkupTypeCommand { get; }
         public ICommand RemoveMarkupTypeCommand { get; }
+        public ICommand EditMarkupTypeCommand { get; }
         public ICommand ClearTypeInstancesCommand { get; }
         public ICommand ClearAllInstancesCommand { get; }
         
@@ -77,6 +78,7 @@ namespace GameSettingsParser.ViewModel
             
             AddMarkupTypeCommand = new DelegateCommand(AddMarkupType);
             RemoveMarkupTypeCommand = new DelegateCommand(RemoveMarkupType, () => SelectedMarkupType.HasValue);
+            EditMarkupTypeCommand = new DelegateCommand(EditMarkupType, () => SelectedMarkupType.HasValue);
             ClearTypeInstancesCommand = new DelegateCommand(ClearCurrentTypeMarkupInstances, () => SelectedImage.HasValue && SelectedMarkupType.HasValue);
             ClearAllInstancesCommand = new DelegateCommand(ClearAllMarkupInstances, () => SelectedImage.HasValue);
             
@@ -160,14 +162,15 @@ namespace GameSettingsParser.ViewModel
 
         public void AddMarkupType()
         {
-            MarkupTypeDialog dialog = new MarkupTypeDialog();
+            MarkupTypeDialogViewModel dialogViewModel = new(_parsingProfile);
+            MarkupTypeDialog dialog = new MarkupTypeDialog(dialogViewModel);
 
             if (dialog.ShowDialog() == true)
             {
-                if(!MarkupTypes.Contains(dialog.MarkupTypeModel))
-                    MarkupTypes.Add(dialog.MarkupTypeModel);
+                if(!MarkupTypes.Contains(dialogViewModel.MarkupTypeModel))
+                    MarkupTypes.Add(dialogViewModel.MarkupTypeModel);
                 
-                SelectedMarkupType = dialog.MarkupTypeModel;
+                SelectedMarkupType = dialogViewModel.MarkupTypeModel;
             }
         }
 
@@ -186,6 +189,20 @@ namespace GameSettingsParser.ViewModel
             
             SelectedMarkupType = MarkupTypes.GetPrevious(SelectedMarkupType.Value);
             _parsingProfile.RemoveMarkupType(markupTypeToRemove);
+        }
+
+        public void EditMarkupType()
+        {
+            if (!SelectedMarkupType.HasValue)
+                return;
+            
+            MarkupTypeDialogViewModel dialogViewModel = new(_parsingProfile, SelectedMarkupType.Value);
+            MarkupTypeDialog dialog = new MarkupTypeDialog(dialogViewModel);
+            
+            if (dialog.ShowDialog() == true)
+            {
+                SelectedMarkupType = dialogViewModel.MarkupTypeModel;
+            }
         }
 
         public bool CanRemoveMarkupType()
