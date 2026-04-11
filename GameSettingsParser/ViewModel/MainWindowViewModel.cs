@@ -68,6 +68,7 @@ namespace GameSettingsParser.ViewModel
         public ICommand ClearAllInstancesCommand { get; }
         
         public ICommand GenerateTesseractDataCommand { get; }
+        public ICommand GatherAndExportSettingsCommand { get; }
 
         public MainWindowViewModel()
         {
@@ -83,6 +84,7 @@ namespace GameSettingsParser.ViewModel
             ClearAllInstancesCommand = new DelegateCommand(ClearAllMarkupInstances, () => SelectedImage.HasValue);
             
             GenerateTesseractDataCommand = new DelegateCommand(GenerateTesseractData, () => SelectedMarkupType.HasValue && SelectedImage.HasValue);
+            GatherAndExportSettingsCommand = new DelegateCommand(GatherAndExportSettings);
 
             _parsingProfile = UserSettings.Instance.ParsingProfile;
             SelectedImage = !string.IsNullOrEmpty(UserSettings.Instance.SelectedImageModel) 
@@ -239,7 +241,7 @@ namespace GameSettingsParser.ViewModel
                             Console.WriteLine("Mean confidence: {0}", page.GetMeanConfidence());
                             Console.WriteLine("Text (GetText): \r\n{0}", text);
 
-                            var regions = page.GetSegmentedRegions(PageIteratorLevel.TextLine);
+                            var regions = page.GetSegmentedRegions(PageIteratorLevel.Word);
                             foreach (var rectangle in regions)
                             {
                                 SelectedImageInstance?.MarkupInstances.Add(new MarkupInstanceModel()
@@ -271,6 +273,116 @@ namespace GameSettingsParser.ViewModel
 
                 return new Bitmap(bitmap);
             }
+        }
+
+        private void GatherAndExportSettings()
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Title = "Select Images To Gather Data From";
+            openFileDialog.Filter = "Image Files (PNG, WEBP, GIF, TIFF, JPG, BMP)|*.png;*.webp;*.gif;*.tiff;*.jpg;*.bmp";
+            openFileDialog.Multiselect = true;
+            bool? result = openFileDialog.ShowDialog();
+
+            if (result == false)
+                return;
+            
+            var imagePaths = openFileDialog.FileNames;
+
+            foreach (var markupType in _parsingProfile.MarkupTypes)
+            {
+                if (markupType.IsSearchArea)
+                    continue;
+
+                if (markupType.IsDynamic)
+                {
+                    ProcessDynamicMarkupInstances(markupType, imagePaths);
+                }
+                
+            }
+        }
+    
+        private void ProcessDynamicMarkupInstances(MarkupTypeModel markupType, string[] imagePaths)
+        {
+            Rectangle searchAreaRectangle = new Rectangle();
+            if (markupType.HasSearchArea)
+            {
+                MarkupTypeModel searchAreaMarkupType = _parsingProfile.GetMarkupTypeByName(markupType.SearchArea);
+                var firstInstance = _parsingProfile.ImageInstances.SelectMany(imageInstance =>
+                    imageInstance.MarkupInstances.Where(instance => instance.Type == searchAreaMarkupType)).First();
+                searchAreaRectangle = RectToRectangle(firstInstance.Rect);
+            }
+            
+            List<Bitmap> targetBitmaps = new List<Bitmap>();
+            
+            foreach (var imageInstance in _parsingProfile.ImageInstances)
+            {
+                var markupInstances = imageInstance.MarkupInstances.Where(instance => instance.Type == markupType);
+                    
+                foreach (var markupInstance in markupInstances)
+                {
+                    Bitmap bitmap = new Bitmap(imageInstance.Image.Path);
+                    var croppedImage = bitmap.Clone(RectToRectangle(markupInstance.Rect), bitmap.PixelFormat);
+                    targetBitmaps.Add(croppedImage);
+                }
+            }
+
+
+
+
+            using (var engine = new TesseractEngine(@"./TesseractData", "eng", EngineMode.Default))
+            {
+                foreach (var imagePath in imagePaths)
+                {
+                    Bitmap bitmap = new Bitmap(imagePath);
+                    if (markupType.HasSearchArea)
+                        bitmap = bitmap.Clone(searchAreaRectangle, bitmap.PixelFormat);
+
+                    using (var img = PixConverter.ToPix(bitmap))
+                    {
+                        using (var page = engine.Process(img))
+                        {
+                            var regions = page.GetSegmentedRegions(PageIteratorLevel.Word);
+                            
+                            var layout = page.AnalyseLayout();
+                            do
+                            {
+                                if (layout.TryGetBoundingBox(PageIteratorLevel.Word, out var boundingBox))
+                                {
+                                    var regionBitmap = bitmap.Clone(RectToRectangle(boundingBox), bitmap.PixelFormat);
+                                    
+                                }
+                                
+                                
+                            } while (layout.Next(PageIteratorLevel.Word));
+                        }
+                    }
+                }
+            }
+        }
+
+        private double GetAverageConfidence(IEnumerable<Bitmap> targetBitmaps, Bitmap testBitmap)
+        {
+            return 0;
+        }
+        
+        
+        
+        private static Rectangle RectToRectangle(Rect rect)
+        {
+            return new Rectangle(
+                Convert.ToInt32(rect.X),
+                Convert.ToInt32(rect.Y),
+                Convert.ToInt32(rect.Width),
+                Convert.ToInt32(rect.Height));
+        }
+        
+        private static Rectangle RectToRectangle(Tesseract.Rect rect)
+        {
+            return new Rectangle(
+                Convert.ToInt32(rect.X1),
+                Convert.ToInt32(rect.Y1),
+                Convert.ToInt32(rect.Width),
+                Convert.ToInt32(rect.Height));
         }
     }
 }

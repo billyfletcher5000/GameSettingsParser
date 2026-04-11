@@ -16,6 +16,12 @@ public record struct MarkupTypeModel
     public string PositionedRelativeTo { get; set; } = String.Empty;
     
     public bool IsPositionedRelativeToOther => !string.IsNullOrEmpty(PositionedRelativeTo);
+
+    public bool IsSearchArea { get; set; } = false;
+    
+    public string SearchArea { get; set; } = String.Empty;
+    
+    public bool HasSearchArea => !string.IsNullOrEmpty(SearchArea);
     
     public override string ToString() => Name;
 

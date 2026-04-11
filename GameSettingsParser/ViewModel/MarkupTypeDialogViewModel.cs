@@ -13,7 +13,6 @@ namespace GameSettingsParser.ViewModel
         }
 
         private string _title;
-
         public string Title
         {
             get => _title;
@@ -49,6 +48,18 @@ namespace GameSettingsParser.ViewModel
             {
                 _markupType.IsDynamic = value;
                 RaisePropertyChanged();
+                RaisePropertyChanged(nameof(HasSearchAreaOptions));
+            }
+        }
+
+        public bool IsSearchArea
+        {
+            get => _markupType.IsSearchArea;
+            set
+            {
+                _markupType.IsSearchArea = value;
+                RaisePropertyChanged();
+                RaisePropertyChanged(nameof(HasSearchAreaOptions));
             }
         }
 
@@ -62,8 +73,22 @@ namespace GameSettingsParser.ViewModel
             }
         }
 
+        public string SearchArea
+        {
+            get => _markupType.SearchArea;
+            set
+            {
+                _markupType.SearchArea = value;
+                RaisePropertyChanged();
+            }
+        }
+
         public ObservableCollection<ColorOption> ColorOptions { get; }
         public ObservableCollection<string> PositionedRelativeToOptions { get; init; }
+        public ObservableCollection<string> SearchAreaOptions { get; init; }
+        
+        public bool HasPositionedRelativeToOptions => PositionedRelativeToOptions.Count > 0;
+        public bool HasSearchAreaOptions => SearchAreaOptions.Count > 0 && !IsSearchArea && IsDynamic;
 
         private MarkupTypeModel _markupType;
         public MarkupTypeModel MarkupTypeModel => _markupType;
@@ -75,6 +100,7 @@ namespace GameSettingsParser.ViewModel
             _typeColor = ColorOptions.First();
             _markupType = new() { Color = _typeColor.Color };
             PositionedRelativeToOptions = new ObservableCollection<string>(parsingProfile.MarkupTypes.Select(type => type.Name));
+            SearchAreaOptions = new ObservableCollection<string>(parsingProfile.MarkupTypes.Where(type => type.IsSearchArea).Select(type => type.Name));
         }
 
         public MarkupTypeDialogViewModel(ParsingProfileModel parsingProfile, MarkupTypeModel markupType)
@@ -84,6 +110,7 @@ namespace GameSettingsParser.ViewModel
             ColorOptions = new ObservableCollection<ColorOption>(GetColorOptionList(parsingProfile));
             _typeColor = ColorOptions.First(option => option.Color == _markupType.Color);
             var validOptions = parsingProfile.MarkupTypes.Where(type => !type.Name.Equals(markupType.Name) && !type.PositionedRelativeTo.Equals(markupType.Name)).Select(type => type.Name).ToList();
+            SearchAreaOptions = new ObservableCollection<string>(parsingProfile.MarkupTypes.Where(type => type.IsSearchArea && !type.Name.Equals(markupType.Name)).Select(type => type.Name));
             PositionedRelativeToOptions = new ObservableCollection<string>(validOptions);
         }
         

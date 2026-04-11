@@ -11,6 +11,8 @@
     <ItemGroup>
       <PackageReference Include="BidirectionalDictionary" Version="1.4.0" />
       <PackageReference Include="IronOcr" Version="2026.4.1" />
+      <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.24.4" />
+      <PackageReference Include="Microsoft.ML.OnnxRuntime.Extensions" Version="0.15.2-dev-20251214-1129-7387a4eb" />
       <PackageReference Include="OpenCvSharp4" Version="4.13.0.20260330" />
       <PackageReference Include="Prism.Wpf" Version="9.0.537" />
       <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.5" />

@@ -6,7 +6,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:GameSettingsParser.Converters"
         xmlns:viewModels="clr-namespace:GameSettingsParser.ViewModel"
-        MinHeight="130"
+        MinHeight="190"
         MinWidth="300"
         SizeToContent="WidthAndHeight"
         ResizeMode="NoResize"
@@ -48,6 +48,8 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition />
         </Grid.RowDefinitions>
 
@@ -76,11 +78,23 @@
         <Label Grid.Column="0" Grid.Row="3">Relative To:</Label>
         <ComboBox Grid.Column="1" Grid.Row="3" Margin="0, 0, 0, 8"
                   ItemsSource="{Binding Path=PositionedRelativeToOptions}"
-                  SelectedItem="{Binding Path=PositionedRelativeTo, Mode=TwoWay}">
-        </ComboBox>
+                  SelectedItem="{Binding Path=PositionedRelativeTo, Mode=TwoWay}"
+                  IsEnabled="{Binding Path=HasPositionedRelativeToOptions}"/>
+        
+        <Label Grid.Column="0" Grid.Row="4">Is Search Area:</Label>
+        <CheckBox Grid.Column="1" Grid.Row="4" VerticalAlignment="Center" IsChecked="{Binding Path=IsSearchArea, Mode=TwoWay}" />
+
+        <Label Grid.Column="0" Grid.Row="5" 
+               ToolTip="Select which markup type should be used as a search area for this element to be found in other images, only available if this is dynamic and a second markup type is marked as 'Is Search Area'.">
+            Search Area:
+        </Label>
+        <ComboBox Grid.Column="1" Grid.Row="5" Margin="0, 0, 0, 8"
+                  ItemsSource="{Binding Path=SearchAreaOptions}"
+                  SelectedItem="{Binding Path=SearchArea, Mode=TwoWay}"
+                  IsEnabled="{Binding Path=HasSearchAreaOptions}"/>
 
         <!-- Accept or Cancel -->
-        <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+        <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Click="OkButton_OnClick" IsDefault="True">OK</Button>
             <Button Click="CancelButton_OnClick" IsCancel="True">Cancel</Button>
         </StackPanel>
