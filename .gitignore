@@ -191,3 +191,6 @@ git_stats/*
 StyleCop.Cache
 bin
 obj
+
+# Test Data
+TestData/
