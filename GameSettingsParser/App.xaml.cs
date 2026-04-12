@@ -2,29 +2,34 @@
 using System.Data;
 using System.Windows;
 using GameSettingsParser.Settings;
-using GameSettingsParser.ViewModel;
+using GameSettingsParser.ViewModels;
 
 namespace GameSettingsParser;
 
 /// <summary>
 /// Interaction logic for App.xaml
 /// </summary>
-public partial class App : Application
+public partial class App : PrismApplication
 {
-    private MainWindowViewModel? _mainWindowViewModel;
     protected override void OnStartup(StartupEventArgs e)
     {
-        base.OnStartup(e);
-        MainWindow window = new MainWindow();
         UserSettings.Load(SettingsPathHelper.GetSettingsFilePath());
-        _mainWindowViewModel = new MainWindowViewModel();
-        window.DataContext = _mainWindowViewModel;
-        window.Show();
+        base.OnStartup(e);
+    }
+
+    protected override void RegisterTypes(IContainerRegistry containerRegistry)
+    {
+        containerRegistry.RegisterForNavigation<MainWindow, MainWindowViewModel>();
+    }
+
+    protected override Window CreateShell()
+    {
+        var window = Container.Resolve<MainWindow>();
+        return window;
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
-        _mainWindowViewModel?.Save();
         UserSettings.Save(SettingsPathHelper.GetSettingsFilePath());
         base.OnExit(e);
     }

@@ -2,7 +2,7 @@
 using System.Windows.Media;
 using GameSettingsParser.Model;
 
-namespace GameSettingsParser.ViewModel
+namespace GameSettingsParser.ViewModels
 {
     public class MarkupTypeDialogViewModel : BindableBase
     {
@@ -87,7 +87,7 @@ namespace GameSettingsParser.ViewModel
             PositionedRelativeToOptions = new ObservableCollection<string>(validOptions);
         }
         
-        private List<ColorOption> GetColorOptionList(ParsingProfileModel parsingProfile)
+        private List<ColorOption> GetColorOptionList(ParsingProfileModel parsingProfile, MarkupTypeModel? selfMarkupType = null)
         {
             Type type = typeof(Colors);
             List<ColorOption> colorOptions = new List<ColorOption>();
@@ -96,7 +96,7 @@ namespace GameSettingsParser.ViewModel
                 if (property.PropertyType == typeof(Color))
                 {
                     var color = (Color)property.GetValue(null)!;
-                    if (parsingProfile.MarkupTypes.Any(markupType => markupType.Color.Equals(color)))
+                    if (parsingProfile.MarkupTypes.Any(markupType => markupType.Color.Equals(color) || (selfMarkupType.HasValue && markupType != selfMarkupType)))
                         continue;
                     
                     ColorOption colorOption = new ColorOption()

@@ -14,7 +14,7 @@ using Tesseract;
 using Path = System.IO.Path;
 using Rect = System.Windows.Rect;
 
-namespace GameSettingsParser.ViewModel
+namespace GameSettingsParser.ViewModels
 {
     public class MainWindowViewModel : BindableBase
     {

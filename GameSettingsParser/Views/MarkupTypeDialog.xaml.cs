@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Media;
 using GameSettingsParser.Model;
-using GameSettingsParser.ViewModel;
+using GameSettingsParser.ViewModels;
 
 namespace GameSettingsParser.Views;
 
