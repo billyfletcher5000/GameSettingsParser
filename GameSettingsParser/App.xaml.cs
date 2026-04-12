@@ -3,6 +3,7 @@ using System.Data;
 using System.Windows;
 using GameSettingsParser.Settings;
 using GameSettingsParser.ViewModels;
+using Prism.Unity;
 
 namespace GameSettingsParser;
 
@@ -30,6 +31,7 @@ public partial class App : PrismApplication
 
     protected override void OnExit(ExitEventArgs e)
     {
+        Container.Resolve<MainWindowViewModel>().Save();
         UserSettings.Save(SettingsPathHelper.GetSettingsFilePath());
         base.OnExit(e);
     }
