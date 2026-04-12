@@ -1,18 +1,12 @@
 ﻿using System.Drawing;
-using System.Windows;
 using GameSettingsParser.Model;
 using GameSettingsParser.Services.TextComparison;
 using GameSettingsParser.Settings;
 using Tesseract;
 using Rect = System.Windows.Rect;
 
-namespace GameSettingsParser.Services
+namespace GameSettingsParser.Services.ImageAnalysis
 {
-    public interface IImageAnalysisService
-    {
-        ImageAnalysisResultModel? Analyse(ParsingProfileModel parsingProfile, string[] imagePathsToAnalyse);
-    }
-    
     public class TesseractImageAnalysisService : IImageAnalysisService
     {
         private struct DynamicMarkupInstance
@@ -23,29 +17,21 @@ namespace GameSettingsParser.Services
         
         public ImageAnalysisResultModel? Analyse(ParsingProfileModel parsingProfile, string[] imagePathsToAnalyse)
         {
-            try
+            ImageAnalysisResultModel imageAnalysisResult = new ImageAnalysisResultModel();
+        
+            foreach (var markupType in parsingProfile.MarkupTypes)
             {
-                ImageAnalysisResultModel imageAnalysisResult = new ImageAnalysisResultModel();
-            
-                foreach (var markupType in parsingProfile.MarkupTypes)
-                {
-                    if (markupType.IsSearchArea)
-                        continue;
+                if (markupType.IsSearchArea)
+                    continue;
 
-                    if (markupType.IsDynamic)
-                    {
-                        // First we process dynamic instances, this is because other markup types can be positioned relatively
-                        ProcessDynamicMarkupInstances(imageAnalysisResult, parsingProfile, markupType, imagePathsToAnalyse);
-                    }
+                if (markupType.IsDynamic)
+                {
+                    // First we process dynamic instances, this is because other markup types can be positioned relatively
+                    ProcessDynamicMarkupInstances(imageAnalysisResult, parsingProfile, markupType, imagePathsToAnalyse);
                 }
-            
-                return imageAnalysisResult;
             }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message);
-                throw;
-            }
+        
+            return imageAnalysisResult;
         }
         
         /// <summary>

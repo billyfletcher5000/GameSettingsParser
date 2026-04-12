@@ -1,7 +1,7 @@
-﻿using System.Configuration;
-using System.Data;
-using System.Windows;
-using GameSettingsParser.Services;
+﻿using System.Windows;
+using GameSettingsParser.Services.DataExport;
+using GameSettingsParser.Services.ImageAnalysis;
+using GameSettingsParser.Services.TextComparison;
 using GameSettingsParser.Settings;
 using GameSettingsParser.ViewModels;
 using Prism.Unity;
@@ -24,6 +24,7 @@ public partial class App : PrismApplication
         containerRegistry.RegisterForNavigation<MainWindow, MainWindowViewModel>();
         containerRegistry.Register<IDataExportService, ConfluenceDataExportService>();
         containerRegistry.Register<IImageAnalysisService, TesseractImageAnalysisService>();
+        containerRegistry.Register<ITextComparisonService, GoogleViTTextComparisonService>();
     }
 
     protected override Window CreateShell()

@@ -6,7 +6,7 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace GameSettingsParser.Services.TextComparison
 {
-    public class GoogleVITTextComparisonService : ITextComparisonService
+    public class GoogleViTTextComparisonService : ITextComparisonService
     {
         private static readonly string ModelFolderPath = @"/onnx-models/google-vit-base-patch16-224";
         private static readonly string ModelFileName = "model.onnx";
@@ -17,12 +17,12 @@ namespace GameSettingsParser.Services.TextComparison
         
         public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB)
         {
-            using (var session = new InferenceSession(ModelPath))
-            {
-                
-            }
+            var session = new InferenceSession(ModelPath);
+            
+            var imageAFeatures = ExtractFeatures(session, imageA);
+            var imageBFeatures = ExtractFeatures(session, imageB);
 
-            return -1;
+            return CalculateCosineSimilarity(imageAFeatures, imageBFeatures);
         }
 
         private static float[] ExtractFeatures(InferenceSession session, Bitmap image)
@@ -73,6 +73,22 @@ namespace GameSettingsParser.Services.TextComparison
 
             using var results = session.Run(inputs);
             return results.First().AsTensor<float>().ToArray();
+        }
+        
+        private static double CalculateCosineSimilarity(float[] vecA, float[] vecB)
+        {
+            double dotProduct = 0.0;
+            double normA = 0.0;
+            double normB = 0.0;
+
+            for (int i = 0; i < vecA.Length; i++)
+            {
+                dotProduct += vecA[i] * vecB[i];
+                normA += Math.Pow(vecA[i], 2);
+                normB += Math.Pow(vecB[i], 2);
+            }
+            
+            return dotProduct / (Math.Sqrt(normA) * Math.Sqrt(normB));
         }
     }
 }
