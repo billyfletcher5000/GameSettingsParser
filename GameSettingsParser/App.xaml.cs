@@ -1,6 +1,7 @@
 ﻿using System.Configuration;
 using System.Data;
 using System.Windows;
+using GameSettingsParser.Services;
 using GameSettingsParser.Settings;
 using GameSettingsParser.ViewModels;
 using Prism.Unity;
@@ -21,6 +22,8 @@ public partial class App : PrismApplication
     protected override void RegisterTypes(IContainerRegistry containerRegistry)
     {
         containerRegistry.RegisterForNavigation<MainWindow, MainWindowViewModel>();
+        containerRegistry.Register<IDataExportService, ConfluenceDataExportService>();
+        containerRegistry.Register<IImageAnalysisService, TesseractImageAnalysisService>();
     }
 
     protected override Window CreateShell()

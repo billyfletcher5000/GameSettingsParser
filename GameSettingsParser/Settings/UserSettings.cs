@@ -13,6 +13,13 @@ public class UserSettings
     public string SelectedImageModel { get; set; } = "";
     
     public string SelectedMarkupType { get; set; } = "";
+    
+    /// <summary>
+    /// The amount of pixels between words' bounding boxes for them to be considered part of the same text string
+    /// </summary>
+    public int WordGapThreshold { get; set; } = 10;
+
+    public float MinimumDynamicComparisonConfidence { get; set; } = 0.5f;
 
     public static void Save(string path)
     {
