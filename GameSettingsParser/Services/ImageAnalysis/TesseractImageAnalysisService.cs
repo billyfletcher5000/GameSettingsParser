@@ -1,9 +1,12 @@
 ﻿using System.Drawing;
+using System.Windows;
 using GameSettingsParser.Model;
 using GameSettingsParser.Services.TextComparison;
 using GameSettingsParser.Settings;
 using Tesseract;
+using Point = System.Drawing.Point;
 using Rect = System.Windows.Rect;
+
 
 namespace GameSettingsParser.Services.ImageAnalysis
 {
@@ -14,26 +17,116 @@ namespace GameSettingsParser.Services.ImageAnalysis
             public Rectangle Rectangle;
             public MarkupTypeModel Type;
         }
-        
+
+        class DynamicMarkupInstanceSet : Dictionary<string, DynamicMarkupInstance>
+        {
+        }
+
         public ImageAnalysisResultModel? Analyse(ParsingProfileModel parsingProfile, string[] imagePathsToAnalyse)
         {
             ImageAnalysisResultModel imageAnalysisResult = new ImageAnalysisResultModel();
-        
-            foreach (var markupType in parsingProfile.MarkupTypes)
+            
+            var dynamicMarkupInstanceSets = new Dictionary<string, DynamicMarkupInstanceSet>();
+            foreach (var markupType in parsingProfile.MarkupTypes.Where(type => type.IsDynamic))
+            {
+                if (markupType.IsDynamic)
+                {
+                    // First we process dynamic instances, this is because other markup types can be positioned relatively
+                    var dynamicMarkupInstances = ProcessDynamicMarkupInstances(imageAnalysisResult, parsingProfile, markupType, imagePathsToAnalyse);
+                    if(dynamicMarkupInstances.Count > 0)
+                        dynamicMarkupInstanceSets.Add(markupType.Name, dynamicMarkupInstances);
+                }
+            }
+            
+            foreach (var markupType in parsingProfile.MarkupTypes.Where(type => !type.IsDynamic))
             {
                 if (markupType.IsSearchArea)
                     continue;
 
-                if (markupType.IsDynamic)
+                foreach (var imagePath in imagePathsToAnalyse)
                 {
-                    // First we process dynamic instances, this is because other markup types can be positioned relatively
-                    ProcessDynamicMarkupInstances(imageAnalysisResult, parsingProfile, markupType, imagePathsToAnalyse);
+                    Rectangle rectangle;
+                    if (markupType.IsPositionedRelativeToOther)
+                    {
+                        var relativeRectangle = GetFirstRelativeRectangle(markupType, parsingProfile);
+                        Point targetPosition;
+                        if (dynamicMarkupInstanceSets.ContainsKey(markupType.PositionedRelativeTo))
+                        {
+                            targetPosition = dynamicMarkupInstanceSets[markupType.PositionedRelativeTo][imagePath].Rectangle.Location;
+                        }
+                        else
+                        {
+                            // Not entirely sure there's a valid use case for this, why would we need a relatively positioned markup type that's not linked to a dynamic?
+                            // TODO: Fix this nesting, the general logic here may be necessarily complicated but surely some of it is unnecessary
+                            targetPosition = GetFirstAbsoluteRectangle(parsingProfile.GetMarkupTypeByName(markupType.PositionedRelativeTo), parsingProfile).Location;
+                        }
+                        
+                        rectangle = relativeRectangle with { X = targetPosition.X + relativeRectangle.X, Y = targetPosition.Y + relativeRectangle.Y };
+                    }
+                    else
+                    {
+                        rectangle = GetFirstAbsoluteRectangle(markupType, parsingProfile);
+                    }
+                    
+                    Bitmap bitmap = new Bitmap(imagePath);
+                    var croppedImage = bitmap.Clone(rectangle, bitmap.PixelFormat);
+
+                    using (var engine = new TesseractEngine(@"./TesseractData", "eng", EngineMode.Default))
+                    {
+                        using (var img = PixConverter.ToPix(bitmap))
+                        {
+                            using (var page = engine.Process(img))
+                            {
+                                var text = page.GetText();
+                                
+                                ImageAnalysisResultModel.Setting setting = GetOrCreateSetting(imageAnalysisResult, imagePath);
+                        
+                                // TODO: Support better setting data organisation, this could be the values or the tooltip etc
+                                if(!setting.MarkupTypeToValues.ContainsKey(markupType.Name))
+                                    setting.MarkupTypeToValues.Add(markupType.Name, new List<string>());
+                        
+                                setting.MarkupTypeToValues[markupType.Name].Add(text);
+                            }
+                        }
+                    }
                 }
             }
         
             return imageAnalysisResult;
         }
-        
+
+        private static ImageAnalysisResultModel.Setting GetOrCreateSetting(ImageAnalysisResultModel imageAnalysisResult, string imagePath)
+        {
+            return imageAnalysisResult.Settings.Any(item => item.ScreenshotPath == imagePath) 
+                ? imageAnalysisResult.Settings.First(item => item.ScreenshotPath == imagePath) 
+                : new ImageAnalysisResultModel.Setting();
+        }
+
+        private Rectangle GetFirstAbsoluteRectangle(MarkupTypeModel markupType, ParsingProfileModel parsingProfile)
+        {
+            var imageInstance = parsingProfile.ImageInstances.First(instance => instance.MarkupInstances.Any(markupInstance => markupInstance.Type == markupType));
+            var targetMarkupInstance = imageInstance.MarkupInstances.First(markupInstance => markupInstance.Type == markupType);
+            return RectToRectangle(targetMarkupInstance.Rect);
+        }
+
+        private Rectangle GetFirstRelativeRectangle(MarkupTypeModel markupType, ParsingProfileModel parsingProfile)
+        {
+            if (!markupType.IsPositionedRelativeToOther)
+                throw new Exception("Markup type is not positioned relatively to another markup type");
+            
+            var targetType = parsingProfile.GetMarkupTypeByName(markupType.PositionedRelativeTo);
+
+            var imageInstance = parsingProfile.ImageInstances.First(instance => 
+                instance.MarkupInstances.Any(markupInstance => markupInstance.Type == targetType)
+                && instance.MarkupInstances.Any(markupInstance => markupInstance.Type == markupType));
+            
+            var targetMarkupInstance = imageInstance.MarkupInstances.First(markupInstance => markupInstance.Type == targetType);
+            var relativeMarkupInstance = imageInstance.MarkupInstances.First(markupInstance => markupInstance.Type == markupType);
+            
+            var vec = relativeMarkupInstance.Rect.Location - targetMarkupInstance.Rect.Location;
+            return new Rectangle(Convert.ToInt32(vec.X), Convert.ToInt32(vec.Y), Convert.ToInt32(relativeMarkupInstance.Rect.Width), Convert.ToInt32(relativeMarkupInstance.Rect.Height));
+        }
+
         /// <summary>
         /// Processes markup instances that are marked as dynamic, using text recognition services where applicable.
         /// </summary>
@@ -43,9 +136,9 @@ namespace GameSettingsParser.Services.ImageAnalysis
         /// <param name="imagePaths"></param>
         /// <returns>Dictionary of a given image path to the dynamic markup instance on that image</returns>
         /// <exception cref="Exception">Throws when search areas are incorrectly set up or validated</exception>
-        private Dictionary<string, DynamicMarkupInstance> ProcessDynamicMarkupInstances(ImageAnalysisResultModel resultModel, ParsingProfileModel parsingProfile, MarkupTypeModel markupType, string[] imagePaths)
+        private DynamicMarkupInstanceSet ProcessDynamicMarkupInstances(ImageAnalysisResultModel resultModel, ParsingProfileModel parsingProfile, MarkupTypeModel markupType, string[] imagePaths)
         {
-            var dynamicMarkupInstances = new Dictionary<string, DynamicMarkupInstance>();
+            var dynamicMarkupInstances = new DynamicMarkupInstanceSet();
             
             // Calculate whether we are searching for instances within a search area or the whole image
             Rectangle? searchAreaRectangle = null;
@@ -163,9 +256,8 @@ namespace GameSettingsParser.Services.ImageAnalysis
 
                     if (bestMatchText != null && bestMatchRectangle != null)
                     {
-                        ImageAnalysisResultModel.Setting? setting = resultModel.Settings.Any(item => item.ScreenshotPath == imagePath) 
-                            ? resultModel.Settings.First(item => item.ScreenshotPath == imagePath) 
-                            : new ImageAnalysisResultModel.Setting();
+                        // TODO: Add method to GetOrCreate
+                        ImageAnalysisResultModel.Setting? setting = GetOrCreateSetting(resultModel, imagePath);
                         
                         if(!setting.MarkupTypeToValues.ContainsKey(markupType.Name))
                             setting.MarkupTypeToValues.Add(markupType.Name, new List<string>());

@@ -6,6 +6,4 @@ namespace GameSettingsParser.Services.ImageAnalysis
     {
         ImageAnalysisResultModel? Analyse(ParsingProfileModel parsingProfile, string[] imagePathsToAnalyse);
     }
-    
-    
 }

@@ -41,6 +41,12 @@
       <None Update="TesseractData\eng.traineddata">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="onnx-models\google-vit-base-patch16-224\model.onnx">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="onnx-models\google-vit-base-patch16-224\config.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>
