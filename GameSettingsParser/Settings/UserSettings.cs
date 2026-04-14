@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Windows;
 using GameSettingsParser.Model;
 using Newtonsoft.Json;
 
@@ -21,6 +22,18 @@ public class UserSettings
 
     public float MinimumDynamicComparisonConfidence { get; set; } = 0.5f;
 
+
+    public struct WindowSettings
+    {
+        public double Left { get; set; }
+        public double Top { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public WindowState WindowState { get; set; }
+    }
+
+    public WindowSettings? MainWindowSettings { get; set; } = null;
+    
     public static void Save(string path)
     {
         try
