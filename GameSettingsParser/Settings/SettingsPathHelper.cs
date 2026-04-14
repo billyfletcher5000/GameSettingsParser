@@ -18,7 +18,10 @@ namespace GameSettingsParser.Settings
 
             Directory.CreateDirectory(folder);
 
-            return Path.Combine(folder, "settings.json");
+            configuredPath = Path.Combine(folder, "settings.json");
+            ConfigurationManager.AppSettings["UserSettingsPath"] = configuredPath;
+            
+            return configuredPath;
         }
     }
 }
