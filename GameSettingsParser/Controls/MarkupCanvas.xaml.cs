@@ -30,7 +30,7 @@ namespace GameSettingsParser.Controls
             if (eNewValue != null)
             {
                 ImageInstance.MarkupInstances.CollectionChanged += MarkupInstancesOnCollectionChanged;
-                BitmapImage bitmapImage =  new BitmapImage();
+                BitmapImage bitmapImage = new BitmapImage();
                 bitmapImage.BeginInit();
                 bitmapImage.UriSource = new Uri(ImageInstance.Image.Path);
                 bitmapImage.EndInit();

@@ -51,22 +51,10 @@ namespace GameSettingsParser.ViewModels
                     _markupType.IsDynamic = value;
                     RaisePropertyChanged();
                     RaisePropertyChanged(nameof(HasSearchAreaOptions));
-                    RaisePropertyChanged(nameof(IsMultilineSelectionAvailable));
                 }
             }
         }
-
-        public bool IsMultiline
-        {
-            get => _markupType.IsMultiline;
-            set
-            {
-                _markupType.IsMultiline = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public bool IsMultilineSelectionAvailable => _markupType.IsDynamic == false;
+        
 
         public bool IsSearchArea
         {

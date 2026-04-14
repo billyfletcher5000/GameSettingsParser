@@ -13,9 +13,6 @@ public record struct MarkupTypeModel
     
     public bool IsDynamic { get; set; } = false;
     
-    // Currently multi-line types cannot also be dynamic due to search complexity issues
-    public bool IsMultiline { get; set; } = false;
-    
     public string PositionedRelativeTo { get; set; } = String.Empty;
     
     public bool IsPositionedRelativeToOther => !string.IsNullOrEmpty(PositionedRelativeTo);

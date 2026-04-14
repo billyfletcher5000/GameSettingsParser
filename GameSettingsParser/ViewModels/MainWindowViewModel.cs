@@ -8,6 +8,7 @@ using Microsoft.Win32;
 using GameSettingsParser.Model;
 using GameSettingsParser.Services.DataExport;
 using GameSettingsParser.Services.ImageAnalysis;
+using GameSettingsParser.Services.Validation;
 using GameSettingsParser.Settings;
 using GameSettingsParser.Utility;
 using GameSettingsParser.Views;
@@ -71,13 +72,15 @@ namespace GameSettingsParser.ViewModels
         public ICommand GenerateTesseractDataCommand { get; }
         public ICommand GatherAndExportSettingsCommand { get; }
         
-        private IImageAnalysisService _imageAnalysisService;
-        private IDataExportService _dataExportService;
+        private readonly IImageAnalysisService _imageAnalysisService;
+        private readonly IDataExportService _dataExportService;
+        private readonly IProfileValidationService _validationService;
 
-        public MainWindowViewModel(IImageAnalysisService imageAnalysisService, IDataExportService dataExportService)
+        public MainWindowViewModel(IImageAnalysisService imageAnalysisService, IDataExportService dataExportService, IProfileValidationService validationService)
         {
             _imageAnalysisService = imageAnalysisService;
             _dataExportService = dataExportService;
+            _validationService = validationService;
             
             AddImageCommand = new DelegateCommand(OnAddImage);
             RemoveImageCommand = new DelegateCommand(OnRemoveImage, () => SelectedImage.HasValue);
@@ -287,20 +290,30 @@ namespace GameSettingsParser.ViewModels
 
         private void GatherAndExportSettings()
         {
+            var validationResult = _validationService.Validate(_parsingProfile);
+            Console.WriteLine(validationResult);
+
+            if (validationResult.Type == ProfileValidationResultType.Invalid)
+            {
+                MessageBox.Show("Validation failed. Please fix the following issues before continuing:\n\n" + string.Join('\n', validationResult.Errors), "Validation Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Title = "Select Images To Gather Data From";
             openFileDialog.Filter = "Image Files (PNG, WEBP, GIF, TIFF, JPG, BMP)|*.png;*.webp;*.gif;*.tiff;*.jpg;*.bmp";
             openFileDialog.Multiselect = true;
-            bool? result = openFileDialog.ShowDialog();
+            bool? dialogResult = openFileDialog.ShowDialog();
 
-            if (result == false)
+            if (dialogResult == false)
                 return;
             
             var imagePaths = openFileDialog.FileNames;
 
-            _imageAnalysisService.Analyse(_parsingProfile, imagePaths);
+            var analysisResult = _imageAnalysisService.Analyse(_parsingProfile, imagePaths);
+            
+            if(analysisResult != null)
+                _dataExportService.Export(analysisResult, null);
         }
-    
-        
     }
 }

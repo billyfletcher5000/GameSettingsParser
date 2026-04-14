@@ -81,7 +81,6 @@ namespace GameSettingsParser.Services.ImageAnalysis
                                 
                                 ImageAnalysisResultModel.Setting setting = GetOrCreateSetting(imageAnalysisResult, imagePath);
                         
-                                // TODO: Support better setting data organisation, this could be the values or the tooltip etc
                                 if(!setting.MarkupTypeToValues.ContainsKey(markupType.Name))
                                     setting.MarkupTypeToValues.Add(markupType.Name, new List<string>());
                         

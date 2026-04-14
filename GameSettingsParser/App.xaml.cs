@@ -2,6 +2,7 @@
 using GameSettingsParser.Services.DataExport;
 using GameSettingsParser.Services.ImageAnalysis;
 using GameSettingsParser.Services.TextComparison;
+using GameSettingsParser.Services.Validation;
 using GameSettingsParser.Settings;
 using GameSettingsParser.ViewModels;
 using Prism.Unity;
@@ -22,9 +23,10 @@ public partial class App : PrismApplication
     protected override void RegisterTypes(IContainerRegistry containerRegistry)
     {
         containerRegistry.RegisterForNavigation<MainWindow, MainWindowViewModel>();
-        containerRegistry.Register<IDataExportService, ConfluenceDataExportService>();
+        containerRegistry.Register<IDataExportService, DebugDataExportService>();
         containerRegistry.Register<IImageAnalysisService, TesseractImageAnalysisService>();
         containerRegistry.Register<ITextComparisonService, GoogleViTTextComparisonService>();
+        containerRegistry.Register<IProfileValidationService, BasicProfileValidationService>();
     }
 
     protected override Window CreateShell()
