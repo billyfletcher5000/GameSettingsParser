@@ -7,13 +7,13 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Image = SixLabors.ImageSharp.Image;
 using Point = SixLabors.ImageSharp.Point;
-using Size = SixLabors.ImageSharp.Size;
+using Size = System.Drawing.Size;
 
 namespace GameSettingsParser.Utility
 {
     public class MLPreprocessor
     {
-        public int TargetSize { get; set; } = 224;
+        public Size TargetSize { get; set; } = new Size(224, 224);
 
         public float[] Mean { get; set; } = [0.485f, 0.456f, 0.406f];
         public float[] Std { get; set; } = [0.229f, 0.224f, 0.225f];
@@ -22,7 +22,7 @@ namespace GameSettingsParser.Utility
         {
         }
 
-        public MLPreprocessor(int targetSize, float[] mean, float[] std)
+        public MLPreprocessor(Size targetSize, float[] mean, float[] std)
         {
             TargetSize = targetSize;
             Mean = mean;
@@ -44,27 +44,27 @@ namespace GameSettingsParser.Utility
             return Image.Load<Rgba32>(ms);
         }
 
-        private Image<Rgba32> ResizeAndPadToSquare(Image<Rgba32> source, int targetSize)
+        private Image<Rgba32> ResizeAndPadToSquare(Image<Rgba32> source, Size targetSize)
         {
             int srcW = source.Width;
             int srcH = source.Height;
 
-            double scale = Math.Min((double)targetSize / srcW, (double)targetSize / srcH);
+            double scale = Math.Min((double)targetSize.Width / srcW, (double)targetSize.Height / srcH);
             int resizedW = Math.Max(1, (int)Math.Round(srcW * scale));
             int resizedH = Math.Max(1, (int)Math.Round(srcH * scale));
 
             var resized = source.Clone(ctx =>
                 ctx.Resize(new ResizeOptions
                 {
-                    Size = new Size(resizedW, resizedH),
+                    Size = new SixLabors.ImageSharp.Size(resizedW, resizedH),
                     Mode = ResizeMode.Stretch,
                     Sampler = KnownResamplers.Lanczos3
                 }));
 
-            var square = new Image<Rgba32>(targetSize, targetSize);
+            var square = new Image<Rgba32>(targetSize.Width, targetSize.Height);
 
-            int offsetX = (targetSize - resizedW) / 2;
-            int offsetY = (targetSize - resizedH) / 2;
+            int offsetX = (targetSize.Width - resizedW) / 2;
+            int offsetY = (targetSize.Height - resizedH) / 2;
 
             square.Mutate(ctx =>
             {

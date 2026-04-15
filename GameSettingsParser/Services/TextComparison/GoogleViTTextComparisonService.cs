@@ -9,6 +9,7 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Image = SixLabors.ImageSharp.Image;
+using Size = System.Drawing.Size;
 
 namespace GameSettingsParser.Services.TextComparison
 {
@@ -18,7 +19,7 @@ namespace GameSettingsParser.Services.TextComparison
         private static readonly string ModelFileName = "model.onnx";
         protected override string ModelPath => $"{ModelFolderPath}/{ModelFileName}";
 
-        protected override int TargetSize => 224;
+        protected override Size TargetSize => new(224, 224);
         protected override float[] Mean => [0.5f, 0.5f, 0.5f];
         protected override float[] Std => [0.5f, 0.5f, 0.5f];
     }

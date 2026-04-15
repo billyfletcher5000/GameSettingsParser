@@ -8,7 +8,7 @@ namespace GameSettingsParser.Services.TextComparison
     public abstract class MLTextComparisonService : ITextComparisonService
     {
         protected abstract string ModelPath { get; }
-        protected abstract int TargetSize { get; }
+        protected abstract Size TargetSize { get; }
         protected abstract float[] Mean { get; }
         protected abstract float[] Std { get; }
         
@@ -24,7 +24,7 @@ namespace GameSettingsParser.Services.TextComparison
 
         protected virtual DenseTensor<float> CreateTensor(float[] data)
         {
-            return new DenseTensor<float>(data, new[] { 1, 3, TargetSize, TargetSize });
+            return new DenseTensor<float>(data, new[] { 1, 3, TargetSize.Height, TargetSize.Width });
         }
 
         protected virtual float[] RetrieveResult(IDisposableReadOnlyCollection<DisposableNamedOnnxValue> onnxResult)
