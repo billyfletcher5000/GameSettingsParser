@@ -1,9 +1,9 @@
 ﻿namespace GameSettingsParser.Model;
 
-public record struct ImageModel
+public class ImageModel
 {
-    public string Name { get; set; }
-    public string Path { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Path { get; set; } = string.Empty;
     
     public override string ToString() => Name;
 }

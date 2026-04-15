@@ -4,7 +4,7 @@ namespace GameSettingsParser.Utility;
 
 public static class EnumerableExtensions
 {
-    public static T? GetNext<T>(this IEnumerable<T> list, T current)
+    public static T? GetNext<T>(this IEnumerable<T> list, T current) where T : class
     {
         try
         {
@@ -12,11 +12,11 @@ public static class EnumerableExtensions
         }
         catch
         {
-            return default;
+            return null;
         }
     }
 
-    public static T? GetPrevious<T>(this IEnumerable<T> list, T current)
+    public static T? GetPrevious<T>(this IEnumerable<T> list, T current) where T : class
     {
         try
         {
@@ -24,7 +24,7 @@ public static class EnumerableExtensions
         }
         catch
         {
-            return default;
+            return null;
         }
     }
     

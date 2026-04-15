@@ -1,15 +1,13 @@
 ﻿using System.Collections.ObjectModel;
+using Newtonsoft.Json;
 
 namespace GameSettingsParser.Model
 {
     public class ImageInstanceModel
     {
-        public ImageModel Image { get; set; }
+        [JsonProperty(IsReference = true)]
+        public ImageModel? Image { get; set; } = null;
+        
         public ObservableCollection<MarkupInstanceModel> MarkupInstances { get; init; } = [];
-
-        public bool Equivalent(ImageInstanceModel other)
-        {
-            return Image.Equals(other.Image) && MarkupInstances.SequenceEqual(other.MarkupInstances);
-        }
     }
 }

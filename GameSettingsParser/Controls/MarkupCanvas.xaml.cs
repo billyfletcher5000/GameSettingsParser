@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Specialized;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -30,11 +31,19 @@ namespace GameSettingsParser.Controls
             if (eNewValue != null)
             {
                 ImageInstance.MarkupInstances.CollectionChanged += MarkupInstancesOnCollectionChanged;
-                BitmapImage bitmapImage = new BitmapImage();
-                bitmapImage.BeginInit();
-                bitmapImage.UriSource = new Uri(ImageInstance.Image.Path);
-                bitmapImage.EndInit();
-                MainImage.Source = bitmapImage;
+                if (ImageInstance != null && File.Exists(ImageInstance.Image.Path))
+                {
+                    BitmapImage bitmapImage = new BitmapImage();
+                    bitmapImage.BeginInit();
+                    bitmapImage.UriSource = new Uri(ImageInstance.Image.Path);
+                    bitmapImage.EndInit();
+                    MainImage.Source = bitmapImage;
+                }
+                else
+                {
+                    MainImage.Source = null;
+                }
+
                 MainImage.InvalidateMeasure();
                 MainImage.InvalidateArrange();
                 MainImage.UpdateLayout();
@@ -48,7 +57,7 @@ namespace GameSettingsParser.Controls
             get => (ImageInstanceModel)GetValue(ImageInstanceProperty);
             set
             {
-                if(!ImageInstance.Equivalent(value))
+                if(ImageInstance != value)
                 {
                     SetValue(ImageInstanceProperty, value);
                     if (ImageInstance != null)
@@ -68,12 +77,12 @@ namespace GameSettingsParser.Controls
         
         public static readonly DependencyProperty SelectedMarkupTypeProperty =
             DependencyProperty.Register(nameof(SelectedMarkupType),
-                typeof(MarkupTypeModel?), typeof(MarkupCanvas), new PropertyMetadata(null, null));
+                typeof(MarkupTypeModel), typeof(MarkupCanvas), new PropertyMetadata(null, null));
 
 
-        public MarkupTypeModel? SelectedMarkupType
+        public MarkupTypeModel SelectedMarkupType
         {
-            get => (MarkupTypeModel?)GetValue(SelectedMarkupTypeProperty);
+            get => (MarkupTypeModel)GetValue(SelectedMarkupTypeProperty);
             set => SetValue(SelectedMarkupTypeProperty, value);
         }
 
@@ -193,7 +202,7 @@ namespace GameSettingsParser.Controls
             _isDragActive = true;
             _dragStartPoint = TransformPointToImageSpace(e.GetPosition(MainImage));
             _dragEndPoint = _dragStartPoint;
-            _activeDragRectangle = CreateDrawableRectangle(SelectedMarkupType!.Value.Color, PointsToValidRect(_dragStartPoint, _dragEndPoint), false);
+            _activeDragRectangle = CreateDrawableRectangle(SelectedMarkupType.Color, PointsToValidRect(_dragStartPoint, _dragEndPoint), false);
             e.Handled = true;
         }
 
@@ -300,7 +309,7 @@ namespace GameSettingsParser.Controls
             var newInstance = new MarkupInstanceModel()
             {
                 Rect = new Rect(startPoint, endPoint),
-                Type = SelectedMarkupType!.Value
+                Type = SelectedMarkupType
             };
         
             ImageInstance.MarkupInstances.Add(newInstance);

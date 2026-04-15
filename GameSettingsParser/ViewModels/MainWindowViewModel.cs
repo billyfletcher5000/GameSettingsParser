@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Drawing;
 using System.IO;
 using System.Windows;
@@ -20,7 +21,7 @@ namespace GameSettingsParser.ViewModels
 {
     public class MainWindowViewModel : BindableBase
     {
-        private ParsingProfileModel _parsingProfile;
+        private readonly ParsingProfileModel _parsingProfile;
         
         public ObservableCollection<ImageModel> Images => _parsingProfile.Images;
         
@@ -36,14 +37,26 @@ namespace GameSettingsParser.ViewModels
                     var newSelectedImageInstance = _parsingProfile.ImageInstances.FirstOrDefault(instance => instance.Image == _selectedImage);
                     if (newSelectedImageInstance == null)
                     {
-                        newSelectedImageInstance = new ImageInstanceModel() { Image = _selectedImage.Value };
+                        newSelectedImageInstance = new ImageInstanceModel() { Image = _selectedImage };
                         _parsingProfile.ImageInstances.Add(newSelectedImageInstance);
                     }
-
-                    SetProperty(ref _selectedImageInstance, newSelectedImageInstance, nameof(SelectedImageInstance)); 
+                    
+                    if (_selectedImageInstance != null)
+                        _selectedImageInstance.MarkupInstances.CollectionChanged -= OnMarkupInstancesOnCollectionChanged;
+                    
+                    SetProperty(ref _selectedImageInstance, newSelectedImageInstance, nameof(SelectedImageInstance));
+                    
+                    if (_selectedImageInstance != null)
+                        _selectedImageInstance.MarkupInstances.CollectionChanged += OnMarkupInstancesOnCollectionChanged;
+                }
+                else
+                {
+                    SetProperty(ref _selectedImageInstance, null, nameof(SelectedImageInstance)); 
                 }
             }
         }
+
+        public bool HasSelectedImage => SelectedImage != null;
 
         private ImageInstanceModel? _selectedImageInstance;
         public ImageInstanceModel? SelectedImageInstance => _selectedImageInstance;
@@ -57,6 +70,7 @@ namespace GameSettingsParser.ViewModels
             get => _selectedMarkupType;
             set => SetProperty(ref _selectedMarkupType, value);
         }
+        public bool HasSelectedMarkupType => SelectedMarkupType != null;
 
         public ICommand AddImageCommand { get; }
         public ICommand RemoveImageCommand { get; }
@@ -83,18 +97,18 @@ namespace GameSettingsParser.ViewModels
             _validationService = validationService;
             
             AddImageCommand = new DelegateCommand(OnAddImage);
-            RemoveImageCommand = new DelegateCommand(OnRemoveImage, () => SelectedImage.HasValue);
+            RemoveImageCommand = new DelegateCommand(OnRemoveImage, () => HasSelectedImage);
             GoToNextImageCommand = new DelegateCommand(GoToNextImage, CanTraverseImages);
             GoToPreviousImageCommand = new DelegateCommand(GoToPreviousImage, CanTraverseImages);
             
             AddMarkupTypeCommand = new DelegateCommand(AddMarkupType);
-            RemoveMarkupTypeCommand = new DelegateCommand(RemoveMarkupType, () => SelectedMarkupType.HasValue);
-            EditMarkupTypeCommand = new DelegateCommand(EditMarkupType, () => SelectedMarkupType.HasValue);
-            ClearTypeInstancesCommand = new DelegateCommand(ClearCurrentTypeMarkupInstances, () => SelectedImage.HasValue && SelectedMarkupType.HasValue);
-            ClearAllInstancesCommand = new DelegateCommand(ClearAllMarkupInstances, () => SelectedImage.HasValue);
+            RemoveMarkupTypeCommand = new DelegateCommand(RemoveMarkupType, () => HasSelectedMarkupType);
+            EditMarkupTypeCommand = new DelegateCommand(EditMarkupType, () => HasSelectedMarkupType);
+            ClearTypeInstancesCommand = new DelegateCommand(ClearCurrentTypeMarkupInstances, () => HasSelectedImage && HasSelectedMarkupType && SelectedImageInstance!.MarkupInstances.Count(instance => instance.Type == SelectedMarkupType) > 0);
+            ClearAllInstancesCommand = new DelegateCommand(ClearAllMarkupInstances, () => HasSelectedImage && HasSelectedMarkupType && SelectedImageInstance!.MarkupInstances.Count > 0);
             
-            GenerateTesseractDataCommand = new DelegateCommand(GenerateTesseractData, () => SelectedMarkupType.HasValue && SelectedImage.HasValue);
-            GatherAndExportSettingsCommand = new DelegateCommand(GatherAndExportSettings);
+            GenerateTesseractDataCommand = new DelegateCommand(GenerateTesseractData, () => HasSelectedImage && HasSelectedMarkupType);
+            GatherAndExportSettingsCommand = new DelegateCommand(GatherAndExportSettings, CanGatherAndExport);
 
             _parsingProfile = UserSettings.Instance.ParsingProfile;
             SelectedImage = !string.IsNullOrEmpty(UserSettings.Instance.SelectedImageModel) 
@@ -105,47 +119,62 @@ namespace GameSettingsParser.ViewModels
                 : MarkupTypes.FirstOrDefault();
         }
 
+        private bool CanGatherAndExport()
+        {
+            return _parsingProfile.MarkupTypes.Count != 0
+                   && _parsingProfile.Images.Count != 0
+                   && _parsingProfile.ImageInstances.Count != 0
+                   && _parsingProfile.ImageInstances.Any(instance => instance.MarkupInstances.Count != 0);
+        }
+
         public void Save()
         {
             UserSettings.Instance.ParsingProfile = _parsingProfile;
-            UserSettings.Instance.SelectedImageModel = _selectedImage.HasValue ? _selectedImage.Value.Name : string.Empty;
-            UserSettings.Instance.SelectedMarkupType = _selectedMarkupType.HasValue ? _selectedMarkupType.Value.Name : string.Empty;
+            UserSettings.Instance.SelectedImageModel = _selectedImage != null ? _selectedImage.Name : string.Empty;
+            UserSettings.Instance.SelectedMarkupType = _selectedMarkupType != null ? _selectedMarkupType.Name : string.Empty;
         }
 
         public void OnAddImage()
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
+            var openFileDialog = new OpenFileDialog
+            {
+                Title = "Open Target Image",
+                Filter = "Image Files (PNG, WEBP, GIF, TIFF, JPG, BMP)|*.png;*.webp;*.gif;*.tiff;*.jpg;*.bmp",
+                Multiselect = true
+            };
 
-            openFileDialog.Title = "Open Target Image";
-            openFileDialog.Filter = "Image Files (PNG, WEBP, GIF, TIFF, JPG, BMP)|*.png;*.webp;*.gif;*.tiff;*.jpg;*.bmp";
-            openFileDialog.Multiselect = true;
+            ImageModel? firstAddedImage = null;
             
-            bool? result = openFileDialog.ShowDialog();
+            var result = openFileDialog.ShowDialog();
             if (result == true)
             {
                 foreach (var file in openFileDialog.FileNames)
                 {
+                    if (Images.Any(image => image.Path.Equals(file))) continue;
+                    
                     ImageModel image = new()
                     {
                         Name = Path.GetFileNameWithoutExtension(file),
                         Path = file,
                     };
-                    
-                    if(!Images.Contains(image))
-                        Images.Add(image);
+
+                    Images.Add(image);
+                    firstAddedImage ??= image;
                 }
-                
-                if(SelectedImage == null)
-                    SelectedImage = Images.First();
             }
+            
+            if(firstAddedImage != null)
+                SelectedImage = firstAddedImage;
+
+            RaiseCommandsCanExecuteChanged();
         }
 
         public void OnRemoveImage()
         {
-            if (!SelectedImage.HasValue)
+            if (SelectedImage == null)
                 return;
 
-            var imageModelToRemove = SelectedImage.Value;
+            var imageModelToRemove = SelectedImage;
             if (_parsingProfile.IsImageModelInUse(imageModelToRemove))
             {
                 var result = MessageBox.Show("Are you sure you want to remove this image? It has markup data.", "Warning", MessageBoxButton.OKCancel);
@@ -155,16 +184,20 @@ namespace GameSettingsParser.ViewModels
             
             GoToPreviousImage();
             _parsingProfile.RemoveImageModel(imageModelToRemove);
+
+            RaiseCommandsCanExecuteChanged();
         }
         
         public void GoToPreviousImage()
         {
-            SelectedImage = SelectedImage.HasValue ? Images.GetPrevious(SelectedImage.Value) : Images.Last();
+            var model = (SelectedImage != null ? Images.GetPrevious(SelectedImage) : Images.First()) ?? Images.First();
+            SelectedImage = model;
         }
 
         public void GoToNextImage()
         {
-            SelectedImage = SelectedImage.HasValue ? Images.GetNext(SelectedImage.Value) : Images.First();
+            var model = (SelectedImage != null ? Images.GetNext(SelectedImage) : Images.Last()) ?? Images.Last();
+            SelectedImage = model;
         }
 
         public bool CanTraverseImages()
@@ -184,14 +217,16 @@ namespace GameSettingsParser.ViewModels
                 
                 SelectedMarkupType = dialogViewModel.MarkupTypeModel;
             }
+            
+            RaiseCommandsCanExecuteChanged();
         }
 
         public void RemoveMarkupType()
         {
-            if (!SelectedMarkupType.HasValue)
+            if (SelectedMarkupType == null)
                 return;
             
-            var markupTypeToRemove = SelectedMarkupType.Value;
+            var markupTypeToRemove = SelectedMarkupType;
             if (_parsingProfile.IsMarkupTypeInUse(markupTypeToRemove))
             {
                 var result = MessageBox.Show("Are you sure you want to remove this markup type? It's still in use!", "Warning", MessageBoxButton.OKCancel);
@@ -199,32 +234,26 @@ namespace GameSettingsParser.ViewModels
                     return;
             }
             
-            SelectedMarkupType = MarkupTypes.GetPrevious(SelectedMarkupType.Value);
+            SelectedMarkupType = MarkupTypes.GetPrevious(SelectedMarkupType);
             _parsingProfile.RemoveMarkupType(markupTypeToRemove);
+            
+            RaiseCommandsCanExecuteChanged();
         }
 
         public void EditMarkupType()
         {
-            if (!SelectedMarkupType.HasValue)
+            if (SelectedMarkupType == null)
                 return;
             
-            MarkupTypeDialogViewModel dialogViewModel = new(_parsingProfile, SelectedMarkupType.Value);
+            MarkupTypeDialogViewModel dialogViewModel = new(_parsingProfile, SelectedMarkupType);
             MarkupTypeDialog dialog = new MarkupTypeDialog(dialogViewModel);
-            
-            if (dialog.ShowDialog() == true)
-            {
-                SelectedMarkupType = dialogViewModel.MarkupTypeModel;
-            }
-        }
-
-        public bool CanRemoveMarkupType()
-        {
-            return SelectedMarkupType.HasValue;
+            dialog.ShowDialog();
         }
 
         public void ClearAllMarkupInstances()
         {
             SelectedImageInstance?.MarkupInstances.Clear();
+            RaiseCommandsCanExecuteChanged();
         }
         
         private void ClearCurrentTypeMarkupInstances()
@@ -234,14 +263,14 @@ namespace GameSettingsParser.ViewModels
 
         public void GenerateTesseractData()
         {
-            if (SelectedImageInstance == null || SelectedMarkupType == null)
+            if (SelectedImageInstance == null || SelectedMarkupType == null || SelectedImageInstance.Image == null)
                 return;
             
             try
             {
                 using (var engine = new TesseractEngine(@"./TesseractData", "eng", EngineMode.Default))
                 {
-                    BitmapImage bitmapImage =  new BitmapImage();
+                    var bitmapImage =  new BitmapImage();
                     bitmapImage.BeginInit();
                     bitmapImage.UriSource = new Uri(SelectedImageInstance.Image.Path);
                     bitmapImage.EndInit();
@@ -260,7 +289,7 @@ namespace GameSettingsParser.ViewModels
                                 SelectedImageInstance?.MarkupInstances.Add(new MarkupInstanceModel()
                                 {
                                     Rect = new Rect(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height),
-                                    Type = SelectedMarkupType!.Value
+                                    Type = SelectedMarkupType
                                 });
                             }
                         }
@@ -275,14 +304,12 @@ namespace GameSettingsParser.ViewModels
         
         private Bitmap BitmapImage2Bitmap(BitmapImage bitmapImage)
         {
-            // BitmapImage bitmapImage = new BitmapImage(new Uri("../Images/test.png", UriKind.Relative));
-
-            using(MemoryStream outStream = new MemoryStream())
+            using(var outStream = new MemoryStream())
             {
                 BitmapEncoder enc = new BmpBitmapEncoder();
                 enc.Frames.Add(BitmapFrame.Create(bitmapImage));
                 enc.Save(outStream);
-                System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap(outStream);
+                var bitmap = new Bitmap(outStream);
 
                 return new Bitmap(bitmap);
             }
@@ -299,11 +326,14 @@ namespace GameSettingsParser.ViewModels
                 return;
             }
 
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = "Select Images To Gather Data From";
-            openFileDialog.Filter = "Image Files (PNG, WEBP, GIF, TIFF, JPG, BMP)|*.png;*.webp;*.gif;*.tiff;*.jpg;*.bmp";
-            openFileDialog.Multiselect = true;
-            bool? dialogResult = openFileDialog.ShowDialog();
+            var openFileDialog = new OpenFileDialog
+            {
+                Title = "Select Images To Gather Data From",
+                Filter = "Image Files (PNG, WEBP, GIF, TIFF, JPG, BMP)|*.png;*.webp;*.gif;*.tiff;*.jpg;*.bmp",
+                Multiselect = true
+            };
+            
+            var dialogResult = openFileDialog.ShowDialog();
 
             if (dialogResult == false)
                 return;
@@ -314,6 +344,25 @@ namespace GameSettingsParser.ViewModels
             
             if(analysisResult != null)
                 _dataExportService.Export(analysisResult, null);
+        }
+        
+        private void OnMarkupInstancesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs args)
+        {
+            RaiseCommandsCanExecuteChanged();
+        }
+        
+        private void RaiseCommandsCanExecuteChanged()
+        {
+            ((DelegateCommand)RemoveImageCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)GoToNextImageCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)GoToPreviousImageCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)AddMarkupTypeCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)RemoveMarkupTypeCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)EditMarkupTypeCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)ClearTypeInstancesCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)ClearAllInstancesCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)GenerateTesseractDataCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)GatherAndExportSettingsCommand).RaiseCanExecuteChanged();
         }
     }
 }

@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace GameSettingsParser.Model;
 
-public record struct MarkupTypeModel
+public class MarkupTypeModel
 {
     public string Name { get; set; } = String.Empty;
     

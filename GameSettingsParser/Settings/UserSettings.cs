@@ -40,7 +40,10 @@ public class UserSettings
         {
             using (StreamWriter writer = File.CreateText(path))
             {
-                JsonSerializer serializer = JsonSerializer.Create();
+                JsonSerializer serializer = JsonSerializer.Create(new JsonSerializerSettings()
+                {
+                    PreserveReferencesHandling = PreserveReferencesHandling.Objects
+                });
                 serializer.Serialize(writer, Instance);
             }
         }
@@ -60,9 +63,12 @@ public class UserSettings
             
             using (StreamReader reader = File.OpenText(path))
             {
-                JsonSerializer serializer = JsonSerializer.Create();
-                var newSettings = serializer.Deserialize(reader, typeof(UserSettings)) as UserSettings;
-                if(newSettings != null)
+                JsonSerializer serializer = JsonSerializer.Create(new JsonSerializerSettings()
+                {
+                    PreserveReferencesHandling = PreserveReferencesHandling.Objects
+                });
+                
+                if(serializer.Deserialize(reader, typeof(UserSettings)) is UserSettings newSettings)
                     Instance = newSettings;
             }
         }

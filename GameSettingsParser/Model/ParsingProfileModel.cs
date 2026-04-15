@@ -1,15 +1,16 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using GameSettingsParser.Utility;
+using Newtonsoft.Json;
 
 namespace GameSettingsParser.Model
 {
     public class ParsingProfileModel
     {
         public string Name { get; set; } = "Unsaved Profile";
-        public List<ImageInstanceModel> ImageInstances { get; } = [];
         public ObservableCollection<MarkupTypeModel> MarkupTypes { get; } = [];
         public ObservableCollection<ImageModel> Images { get; } = [];
+        public List<ImageInstanceModel> ImageInstances { get; } = [];
 
         public bool IsImageModelInUse(ImageModel image)
         {
