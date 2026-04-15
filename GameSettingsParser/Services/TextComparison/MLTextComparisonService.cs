@@ -32,13 +32,18 @@ namespace GameSettingsParser.Services.TextComparison
             return onnxResult.First().AsTensor<float>().ToArray();
         }
 
+        protected virtual string GetInputName(InferenceSession session)
+        {
+            return session.InputMetadata.Keys.First();
+        }
+
         private float[] ExtractFeatures(InferenceSession session, Bitmap image)
         {
             MLPreprocessor preprocessor = new MLPreprocessor(TargetSize, Mean, Std);
             float[] data = preprocessor.Preprocess(image);
             var tensor = CreateTensor(data);
 
-            var inputName = session.InputMetadata.Keys.First();
+            var inputName = GetInputName(session);
             var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(inputName, tensor) };
   
             using var results = session.Run(inputs);
