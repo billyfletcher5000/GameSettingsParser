@@ -419,7 +419,7 @@ namespace GameSettingsParser.Controls
             {
                 Point startPoint = new Point((double)e.Rectangle.GetValue(Canvas.LeftProperty), (double)e.Rectangle.GetValue(Canvas.TopProperty));
                 Point endPoint = new Point(startPoint.X + e.Rectangle.ActualWidth, startPoint.Y + e.Rectangle.ActualHeight);
-                markupInstance.Rect = new Rect(TransformPointToImageSpace(startPoint), TransformPointToImageSpace(endPoint));
+                markupInstance.Rect = new Rect(startPoint, endPoint);
             }
         }
 
