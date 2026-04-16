@@ -77,6 +77,18 @@ namespace GameSettingsParser.ViewModels
             }
         }
 
+        public RelativePositioningType RelativePositioningType
+        {
+            get => MarkupTypeModel.RelativePositioningType;
+            set
+            {
+                MarkupTypeModel.RelativePositioningType = value;
+                RaisePropertyChanged();
+            }
+        }
+        
+        public IEnumerable<RelativePositioningType> RelativePositioningTypeValues => Enum.GetValues<RelativePositioningType>();
+
         public string SearchArea
         {
             get => MarkupTypeModel.SearchArea;
@@ -93,6 +105,7 @@ namespace GameSettingsParser.ViewModels
         
         public bool HasPositionedRelativeToOptions => PositionedRelativeToOptions.Count > 0;
         public bool HasSearchAreaOptions => SearchAreaOptions.Count > 0 && !IsSearchArea && IsDynamic;
+        public bool IsPositionedRelativeToOther => !string.IsNullOrEmpty(PositionedRelativeTo);
 
         public MarkupTypeModel MarkupTypeModel { get; }
 

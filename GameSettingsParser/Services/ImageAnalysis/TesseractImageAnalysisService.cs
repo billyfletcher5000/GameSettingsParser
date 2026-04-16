@@ -1,19 +1,14 @@
 ﻿using System.Drawing;
 using System.IO;
-using System.Net;
 using System.Text.RegularExpressions;
-using System.Windows;
-using System.Windows.Shapes;
 using GameSettingsParser.Model;
 using GameSettingsParser.Services.TextComparison;
 using GameSettingsParser.Settings;
 using Tesseract;
 using ImageFormat = System.Drawing.Imaging.ImageFormat;
 using Path = System.IO.Path;
-using Point = System.Drawing.Point;
 using Rect = System.Windows.Rect;
 using Rectangle = System.Drawing.Rectangle;
-
 
 namespace GameSettingsParser.Services.ImageAnalysis
 {
@@ -22,16 +17,29 @@ namespace GameSettingsParser.Services.ImageAnalysis
         private struct DynamicMarkupInstance
         {
             public Rectangle Rectangle;
+            // ReSharper disable once NotAccessedField.Local
             public MarkupTypeModel Type;
         }
 
-        class DynamicMarkupInstanceSet : Dictionary<string, DynamicMarkupInstance>
+        private class DynamicMarkupInstanceSet : Dictionary<string, DynamicMarkupInstance>
         {
         }
+        
+        private readonly TesseractEngine _engine;
 
-        public ImageAnalysisResultModel? Analyse(ParsingProfileModel parsingProfile, string[] imagePathsToAnalyse)
+        public TesseractImageAnalysisService()
         {
-            ImageAnalysisResultModel imageAnalysisResult = new ImageAnalysisResultModel();
+            _engine = new TesseractEngine(@"./TesseractData", "eng", EngineMode.Default);
+            
+            // Disable debug output, it prints an "Empty Page!!" error when we test regions that don't have text in them,
+            // which while 'correct' is also expected behaviour. It would be better if we could suppress this specific message
+            // but it does not appear possible.
+            _engine.SetVariable("debug_file", "NUL");
+        }
+        
+        public ImageAnalysisResultModel Analyse(ParsingProfileModel parsingProfile, string[] imagePathsToAnalyse)
+        {
+            var imageAnalysisResult = new ImageAnalysisResultModel();
             
             var dynamicMarkupInstanceSets = new Dictionary<string, DynamicMarkupInstanceSet>();
             foreach (var markupType in parsingProfile.MarkupTypes.Where(type => type.IsDynamic))
@@ -56,19 +64,19 @@ namespace GameSettingsParser.Services.ImageAnalysis
                     if (markupType.IsPositionedRelativeToOther)
                     {
                         var relativeRectangle = GetFirstRelativeRectangle(markupType, parsingProfile);
-                        Point targetPosition;
-                        if (dynamicMarkupInstanceSets.ContainsKey(markupType.PositionedRelativeTo))
+                        Rectangle parentRectangle;
+                        if (dynamicMarkupInstanceSets.TryGetValue(markupType.PositionedRelativeTo, out var value))
                         {
-                            targetPosition = dynamicMarkupInstanceSets[markupType.PositionedRelativeTo][imagePath].Rectangle.Location;
+                            parentRectangle = value[imagePath].Rectangle;
                         }
                         else
                         {
                             // Not entirely sure there's a valid use case for this, why would we need a relatively positioned markup type that's not linked to a dynamic?
                             // TODO: Fix this nesting, the general logic here may be necessarily complicated but surely some of it is unnecessary
-                            targetPosition = GetFirstAbsoluteRectangle(parsingProfile.GetMarkupTypeByName(markupType.PositionedRelativeTo), parsingProfile).Location;
+                            parentRectangle = GetFirstAbsoluteRectangle(parsingProfile.GetMarkupTypeByName(markupType.PositionedRelativeTo), parsingProfile);
                         }
                         
-                        rectangle = relativeRectangle with { X = targetPosition.X + relativeRectangle.X, Y = targetPosition.Y + relativeRectangle.Y };
+                        rectangle = OffsetRelativeRectangle(relativeRectangle, parentRectangle, markupType.RelativePositioningType);
                     }
                     else
                     {
@@ -78,27 +86,25 @@ namespace GameSettingsParser.Services.ImageAnalysis
                     Bitmap bitmap = new Bitmap(imagePath);
                     var croppedImage = bitmap.Clone(rectangle, bitmap.PixelFormat);
 
-                    using (var engine = new TesseractEngine(@"./TesseractData", "eng", EngineMode.Default))
+                    using (var img = PixConverter.ToPix(croppedImage))
                     {
-                        using (var img = PixConverter.ToPix(croppedImage))
+                        using (var page = _engine.Process(img))
                         {
-                            using (var page = engine.Process(img))
-                            {
-                                var text = page.GetText();
-                                
-                                var imageFilename = Path.GetFileName(imagePath);
-                                Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/");
-                                croppedImage.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/{imageFilename}_{markupType.Name}.png", ImageFormat.Png);
-                                
-                                ImageAnalysisResultModel.Setting setting = GetOrCreateSetting(imageAnalysisResult, imagePath);
-                        
-                                if(!setting.MarkupTypeToValues.ContainsKey(markupType.Name))
-                                    setting.MarkupTypeToValues.Add(markupType.Name, new List<string>());
-                        
-                                setting.MarkupTypeToValues[markupType.Name].Add(SanitizeOCRText(text));
-                            }
+                            var text = page.GetText();
+                            
+                            var imageFilename = Path.GetFileName(imagePath);
+                            Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/");
+                            croppedImage.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/{imageFilename}_{markupType.Name}.png", ImageFormat.Png);
+                            
+                            ImageAnalysisResultModel.Setting setting = GetOrCreateSetting(imageAnalysisResult, imagePath);
+                    
+                            if(!setting.MarkupTypeToValues.ContainsKey(markupType.Name))
+                                setting.MarkupTypeToValues.Add(markupType.Name, new List<string>());
+                    
+                            setting.MarkupTypeToValues[markupType.Name].Add(SanitizeOCRText(text));
                         }
                     }
+                    
                 }
             }
         
@@ -158,12 +164,12 @@ namespace GameSettingsParser.Services.ImageAnalysis
             Rectangle? searchAreaRectangle = null;
             if (markupType.HasSearchArea)
             {
-                MarkupTypeModel searchAreaMarkupType = parsingProfile.GetMarkupTypeByName(markupType.SearchArea);
+                var searchAreaMarkupType = parsingProfile.GetMarkupTypeByName(markupType.SearchArea);
                 var allInstances = parsingProfile.ImageInstances.SelectMany(imageInstance =>
                     imageInstance.MarkupInstances.Where(instance => instance.Type == searchAreaMarkupType)).ToList();
 
                 var instanceCount = allInstances.Count;
-                if(instanceCount == 0)
+                if (instanceCount == 0)
                     throw new Exception($"No instances of search area found for markup type \"{markupType.Name}\": {markupType.SearchArea}");
                 
                 if (instanceCount > 1)
@@ -173,7 +179,7 @@ namespace GameSettingsParser.Services.ImageAnalysis
                 searchAreaRectangle = RectToRectangle(firstInstance.Rect);
             }
             
-            List<Bitmap> targetBitmaps = new List<Bitmap>();
+            var targetBitmaps = new List<Bitmap>();
             
             // Gather all instances of regions marked dynamic, create cropped bitmaps for future comparison
             foreach (var imageInstance in parsingProfile.ImageInstances)
@@ -185,7 +191,7 @@ namespace GameSettingsParser.Services.ImageAnalysis
                     if (imageInstance.Image == null || !File.Exists(imageInstance.Image.Path))
                         continue;
                     
-                    Bitmap bitmap = new Bitmap(imageInstance.Image.Path);
+                    var bitmap = new Bitmap(imageInstance.Image.Path);
                     var croppedImage = bitmap.Clone(RectToRectangle(markupInstance.Rect), bitmap.PixelFormat);
                     targetBitmaps.Add(croppedImage);
 
@@ -194,122 +200,119 @@ namespace GameSettingsParser.Services.ImageAnalysis
                 }
             }
 
-            int wordGapThreshold = UserSettings.Instance.WordGapThreshold;
-            float minimumConfidence = UserSettings.Instance.MinimumDynamicComparisonConfidence;
+            var wordGapThreshold = parsingProfile.WordGapThreshold;
+            var minimumConfidence = parsingProfile.MinimumDynamicComparisonConfidence;
 
             // Iterate over each image, gathering each word instance and testing it against the target/training images
-            using (var engine = new TesseractEngine(@"./TesseractData", "eng", EngineMode.Default))
+            foreach (var imagePath in imagePaths)
             {
-                foreach (var imagePath in imagePaths)
+                string? bestMatchText = null;
+                Rectangle? bestMatchRectangle = null;
+                double confidence = 0.0;
+                
+                var bitmap = new Bitmap(imagePath);
+                if (markupType.HasSearchArea)
+                    bitmap = bitmap.Clone(searchAreaRectangle!.Value, bitmap.PixelFormat);
+                
+                var currentWordSequence = new List<(string, Rectangle)>();
+                var isHighestConfidenceWordSequence = false;
+
+                using (var img = PixConverter.ToPix(bitmap))
                 {
-                    string? bestMatchText = null;
-                    Rectangle? bestMatchRectangle = null;
-                    double confidence = 0.0;
-                    
-                    var bitmap = new Bitmap(imagePath);
-                    if (markupType.HasSearchArea)
-                        bitmap = bitmap.Clone(searchAreaRectangle!.Value, bitmap.PixelFormat);
-                    
-                    
-                    var currentWordSequence = new List<(string, Rectangle)>();
-                    var isHighestConfidenceWordSequence = false;
-
-                    using (var img = PixConverter.ToPix(bitmap))
+                    using (var page = _engine.Process(img))
                     {
-                        using (var page = engine.Process(img))
+                        using (var iterator = page.GetIterator())
                         {
-                            using (var iterator = page.GetIterator())
-                            {
-                                iterator.Begin();
+                            iterator.Begin();
 
+                            do
+                            {
                                 do
                                 {
-                                    do
+                                    if (!iterator.TryGetBoundingBox(PageIteratorLevel.Word, out var boundingBox))
+                                        continue;
+                                    
+                                    var lineText = iterator.GetText(PageIteratorLevel.TextLine);
+                                    Console.WriteLine($"Line: {lineText}");
+                                    
+                                    var wordText = iterator.GetText(PageIteratorLevel.Word);
+
+                                    var rectangle = RectToRectangle(boundingBox);
+                                    var regionBitmap = bitmap.Clone(rectangle, bitmap.PixelFormat);
+                                    string imageFilename = Path.GetFileName(imagePath);
+                                    Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/");
+                                    regionBitmap.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/{imageFilename}_{wordText}.png", ImageFormat.Png);
+
+                                    var textComparisonService = ContainerLocator.Current.Resolve<ITextComparisonService>();
+
+                                    foreach (var targetBitmap in targetBitmaps)
                                     {
-                                        if (!iterator.TryGetBoundingBox(PageIteratorLevel.Word, out var boundingBox))
-                                            continue;
+                                        var newConfidence = textComparisonService.GetConfidenceInterval(targetBitmap, regionBitmap);
 
-                                        var lineText = iterator.GetText(PageIteratorLevel.TextLine);
-                                        Console.WriteLine($"Line: {lineText}");
-                                        
-                                        var wordText = iterator.GetText(PageIteratorLevel.Word);
-
-                                        var rectangle = RectToRectangle(boundingBox);
-                                        var regionBitmap = bitmap.Clone(rectangle, bitmap.PixelFormat);
-                                        string imageFilename = Path.GetFileName(imagePath);
-                                        Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/");
-                                        regionBitmap.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/{imageFilename}_{wordText}.png", ImageFormat.Png);
-
-                                        var textComparisonService = ContainerLocator.Current.Resolve<ITextComparisonService>();
-
-                                        foreach (var targetBitmap in targetBitmaps)
+                                        if (newConfidence > confidence && newConfidence > minimumConfidence)
                                         {
-                                            var newConfidence = textComparisonService.GetConfidenceInterval(targetBitmap, regionBitmap);
-
-                                            if (newConfidence > confidence && newConfidence > minimumConfidence)
-                                            {
-                                                confidence = newConfidence;
-                                                bestMatchRectangle = rectangle;
-                                                bestMatchText = wordText;
-                                                isHighestConfidenceWordSequence = true;
-                                            }
-                                            
-                                            Console.WriteLine($"Text: {wordText}, Confidence: {newConfidence}, Best Match: {bestMatchText}, Best Match Confidence: {confidence}");
-                                        }
-
-                                        // Check the word sequence hasn't ended, if it has, condense the last sequence if it's likely our target
-                                        if (currentWordSequence.Count > 0)
-                                        {
-                                            var lastRect = currentWordSequence.Last().Item2;
-                                            if (rectangle.X - (lastRect.X + lastRect.Width) > wordGapThreshold)
-                                            {
-                                                if (isHighestConfidenceWordSequence)
-                                                {
-                                                    CondenseWordSequence(currentWordSequence, out var condensedText, out var condensedRect);
-                                                    bestMatchText = condensedText;
-                                                    bestMatchRectangle = condensedRect;
-                                                    isHighestConfidenceWordSequence = false;
-                                                    currentWordSequence.Clear();
-                                                }
-                                            }
+                                            confidence = newConfidence;
+                                            bestMatchRectangle = rectangle;
+                                            bestMatchText = wordText;
+                                            isHighestConfidenceWordSequence = true;
                                         }
                                         
-                                        currentWordSequence.Add((wordText, rectangle));
+                                        Console.WriteLine($"Text: {wordText}, Confidence: {newConfidence}, Best Match: {bestMatchText}, Best Match Confidence: {confidence}");
                                     }
-                                    while (iterator.Next(PageIteratorLevel.TextLine, PageIteratorLevel.Word));
-                                    
-                                    if (isHighestConfidenceWordSequence)
+
+                                    // Check the word sequence hasn't ended, if it has, condense the last sequence if it's likely our target
+                                    if (currentWordSequence.Count > 0)
                                     {
-                                        CondenseWordSequence(currentWordSequence, out var condensedText, out var condensedRect);
-                                        bestMatchText = condensedText;
-                                        bestMatchRectangle = condensedRect;
-                                        isHighestConfidenceWordSequence = false;
+                                        var lastRect = currentWordSequence.Last().Item2;
+                                        if (wordGapThreshold >= 0 && rectangle.X - (lastRect.X + lastRect.Width) > wordGapThreshold)
+                                        {
+                                            if (isHighestConfidenceWordSequence)
+                                            {
+                                                CondenseWordSequence(currentWordSequence, out var condensedText, out var condensedRect);
+                                                bestMatchText = condensedText;
+                                                bestMatchRectangle = condensedRect;
+                                                isHighestConfidenceWordSequence = false;
+                                                currentWordSequence.Clear();
+                                            }
+                                        }
                                     }
                                     
-                                    currentWordSequence.Clear();
-                                } 
-                                while (iterator.Next(PageIteratorLevel.TextLine));
-                            }
+                                    currentWordSequence.Add((wordText, rectangle));
+                                }
+                                while (iterator.Next(PageIteratorLevel.TextLine, PageIteratorLevel.Word));
+                                
+                                if (isHighestConfidenceWordSequence)
+                                {
+                                    CondenseWordSequence(currentWordSequence, out var condensedText, out var condensedRect);
+                                    bestMatchText = condensedText;
+                                    bestMatchRectangle = condensedRect;
+                                    isHighestConfidenceWordSequence = false;
+                                }
+                                
+                                currentWordSequence.Clear();
+                            } 
+                            while (iterator.Next(PageIteratorLevel.TextLine));
                         }
                     }
+                }
 
-                    if (bestMatchText != null && bestMatchRectangle != null)
-                    {
-                        // TODO: Add method to GetOrCreate
-                        ImageAnalysisResultModel.Setting? setting = GetOrCreateSetting(resultModel, imagePath);
-                        
-                        if(!setting.MarkupTypeToValues.ContainsKey(markupType.Name))
-                            setting.MarkupTypeToValues.Add(markupType.Name, new List<string>());
-                        
-                        setting.MarkupTypeToValues[markupType.Name].Add(SanitizeOCRText(bestMatchText));
-                        
-                        if(searchAreaRectangle.HasValue)
-                            bestMatchRectangle = bestMatchRectangle.Value with { X = bestMatchRectangle.Value.Location.X + searchAreaRectangle.Value.Location.X, Y = bestMatchRectangle.Value.Location.Y + searchAreaRectangle.Value.Location.Y };
-                        
-                        dynamicMarkupInstances.Add(imagePath, new DynamicMarkupInstance() { Rectangle = bestMatchRectangle.Value, Type = markupType });
-                    }
+                if (bestMatchText != null && bestMatchRectangle != null)
+                {
+                    // TODO: Add method to GetOrCreate
+                    var setting = GetOrCreateSetting(resultModel, imagePath);
+                    
+                    if(!setting.MarkupTypeToValues.ContainsKey(markupType.Name))
+                        setting.MarkupTypeToValues.Add(markupType.Name, new List<string>());
+                    
+                    setting.MarkupTypeToValues[markupType.Name].Add(SanitizeOCRText(bestMatchText));
+                    
+                    if(searchAreaRectangle.HasValue)
+                        bestMatchRectangle = bestMatchRectangle.Value with { X = bestMatchRectangle.Value.Location.X + searchAreaRectangle.Value.Location.X, Y = bestMatchRectangle.Value.Location.Y + searchAreaRectangle.Value.Location.Y };
+                    
+                    dynamicMarkupInstances.Add(imagePath, new DynamicMarkupInstance() { Rectangle = bestMatchRectangle.Value, Type = markupType });
                 }
             }
+            
 
             return dynamicMarkupInstances;
         }
@@ -329,12 +332,6 @@ namespace GameSettingsParser.Services.ImageAnalysis
             boundingBox = combinedBox;
         }
 
-        private double GetAverageConfidence(IEnumerable<Bitmap> targetBitmaps, Bitmap testBitmap)
-        {
-            return 0;
-        }
-        
-        
         // TODO: Fix all this marshalling into multiple Rect implementations, or at least make it implicit conversions via extensions
         private static Rectangle RectToRectangle(Rect rect)
         {
@@ -353,10 +350,46 @@ namespace GameSettingsParser.Services.ImageAnalysis
                 Convert.ToInt32(rect.Width),
                 Convert.ToInt32(rect.Height));
         }
-
-        private static Rect RectangleToRect(Rectangle rect)
+        
+        private static Rectangle OffsetRelativeRectangle(Rectangle relativeRectangle, Rectangle parentRectangle, RelativePositioningType positioningType)
         {
-            return new Rect(rect.X, rect.Y, rect.Width, rect.Height);
+            var halfRelativeWidth = relativeRectangle.Width / 2;
+            var halfRelativeHeight = relativeRectangle.Height / 2;
+            var halfParentWidth = parentRectangle.Width / 2;
+            var halfParentHeight = parentRectangle.Height / 2;
+
+            //TODO: Rethink this logic, I think it makes assumptions about the relative rectangle's pivot point, but it also seems to work
+            var output = relativeRectangle;
+
+            output.X = positioningType switch
+            {
+                RelativePositioningType.TopLeft or RelativePositioningType.MiddleLeft or RelativePositioningType.BottomLeft 
+                    => parentRectangle.X + relativeRectangle.X,
+                
+                RelativePositioningType.TopMiddle or RelativePositioningType.MiddleMiddle or RelativePositioningType.BottomMiddle 
+                    => parentRectangle.X + halfParentWidth + relativeRectangle.X + halfRelativeWidth,
+                
+                RelativePositioningType.TopRight or RelativePositioningType.MiddleRight or RelativePositioningType.BottomRight 
+                    => parentRectangle.X + parentRectangle.Width + relativeRectangle.X + relativeRectangle.Width,
+                
+                _ => output.X
+            };
+
+            output.Y = positioningType switch
+            {
+                RelativePositioningType.TopLeft or RelativePositioningType.TopMiddle or RelativePositioningType.TopRight
+                    => parentRectangle.Y + relativeRectangle.Y,
+                
+                RelativePositioningType.MiddleLeft or RelativePositioningType.MiddleMiddle or RelativePositioningType.MiddleRight 
+                    => parentRectangle.Y + halfParentHeight + relativeRectangle.Y - halfRelativeHeight,
+                
+                RelativePositioningType.BottomLeft or RelativePositioningType.BottomMiddle or RelativePositioningType.BottomRight 
+                    => parentRectangle.Y + parentRectangle.Height + relativeRectangle.Y - relativeRectangle.Height,
+                
+                _ => output.Y
+            };
+
+            return output;
         }
         
         private static string SanitizeOCRText(string input)
@@ -364,8 +397,8 @@ namespace GameSettingsParser.Services.ImageAnalysis
             if (string.IsNullOrWhiteSpace(input))
                 return string.Empty;
 
-            // Replace any run of whitespace (spaces, tabs, newlines, etc) with a single space and trim
-            return Regex.Replace(input, @"\s+", " ").Trim();
+            // Replace any run of whitespace (spaces, tabs, newlines, etc) and unwanted punctuation with a single space and trim
+            return Regex.Replace(input, @"\s+|[_<>\[\]]+", " ").Trim();
         }
     }
 }

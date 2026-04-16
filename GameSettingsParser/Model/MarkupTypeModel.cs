@@ -2,30 +2,46 @@
 using GameSettingsParser.Settings.JsonConverters;
 using Newtonsoft.Json;
 
-namespace GameSettingsParser.Model;
-
-public class MarkupTypeModel
+namespace GameSettingsParser.Model
 {
-    public string Name { get; set; } = String.Empty;
-    
-    [JsonConverter(typeof(ColorJsonConverter))]
-    public Color Color { get; set; } = Colors.Blue;
-    
-    public bool IsDynamic { get; set; } = false;
-    
-    public string PositionedRelativeTo { get; set; } = String.Empty;
-    
-    public bool IsPositionedRelativeToOther => !string.IsNullOrEmpty(PositionedRelativeTo);
-
-    public bool IsSearchArea { get; set; } = false;
-    
-    public string SearchArea { get; set; } = String.Empty;
-    
-    public bool HasSearchArea => !string.IsNullOrEmpty(SearchArea);
-    
-    public override string ToString() => Name;
-
-    public MarkupTypeModel()
+    public enum RelativePositioningType
     {
+        TopLeft,
+        MiddleLeft,
+        BottomLeft,
+        TopMiddle,
+        MiddleMiddle,
+        BottomMiddle,
+        TopRight,
+        MiddleRight,
+        BottomRight,
+    }
+
+    public class MarkupTypeModel
+    {
+        public string Name { get; set; } = String.Empty;
+    
+        [JsonConverter(typeof(ColorJsonConverter))]
+        public Color Color { get; set; } = Colors.Blue;
+    
+        public bool IsDynamic { get; set; } = false;
+    
+        public string PositionedRelativeTo { get; set; } = String.Empty;
+    
+        public bool IsPositionedRelativeToOther => !string.IsNullOrEmpty(PositionedRelativeTo);
+        
+        public RelativePositioningType RelativePositioningType { get; set; } = RelativePositioningType.MiddleLeft;
+
+        public bool IsSearchArea { get; set; } = false;
+    
+        public string SearchArea { get; set; } = String.Empty;
+    
+        public bool HasSearchArea => !string.IsNullOrEmpty(SearchArea);
+    
+        public override string ToString() => Name;
+
+        public MarkupTypeModel()
+        {
+        }
     }
 }

@@ -10,6 +10,7 @@
 
     <ItemGroup>
       <PackageReference Include="BidirectionalDictionary" Version="1.4.0" />
+      <PackageReference Include="Extended.Wpf.Toolkit" Version="5.0.0" />
       <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.24.4" />
       <PackageReference Include="Microsoft.ML.OnnxRuntime.Extensions" Version="0.15.2-dev-20251214-1129-7387a4eb" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1" />
@@ -50,6 +51,10 @@
       <None Update="onnx-models\google-vit-base-patch16-224\config.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="System.Windows.Forms" />
     </ItemGroup>
 
 </Project>

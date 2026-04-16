@@ -316,7 +316,11 @@ namespace GameSettingsParser.Controls
                 Rect = new Rect(startPoint, endPoint),
                 Type = SelectedMarkupType
             };
-        
+
+            // TODO: Fix the source of this issue, it appears to occur when alt-tabbing but may be development only.
+            if (newInstance.Rect.Width == 0 || newInstance.Rect.Height == 0)
+                return;
+            
             ImageInstance.MarkupInstances.Add(newInstance);
         }
 
@@ -424,7 +428,12 @@ namespace GameSettingsParser.Controls
             {
                 Point startPoint = new Point((double)e.Rectangle.GetValue(Canvas.LeftProperty), (double)e.Rectangle.GetValue(Canvas.TopProperty));
                 Point endPoint = new Point(startPoint.X + e.Rectangle.ActualWidth, startPoint.Y + e.Rectangle.ActualHeight);
-                markupInstance.Rect = new Rect(startPoint, endPoint);
+                var rect = new Rect(startPoint, endPoint);
+                
+                if(rect.Width == 0 || rect.Height == 0)
+                    throw new InvalidOperationException("Cannot create markup instance with zero width or height");
+                
+                markupInstance.Rect = rect;
             }
         }
 

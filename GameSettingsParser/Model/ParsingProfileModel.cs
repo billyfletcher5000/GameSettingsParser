@@ -11,6 +11,13 @@ namespace GameSettingsParser.Model
         public ObservableCollection<MarkupTypeModel> MarkupTypes { get; } = [];
         public ObservableCollection<ImageModel> Images { get; } = [];
         public List<ImageInstanceModel> ImageInstances { get; } = [];
+    
+        /// <summary>
+        /// The amount of pixels between words' bounding boxes for them to be considered part of the same text string
+        /// </summary>
+        public int WordGapThreshold { get; set; } = 10;
+
+        public double MinimumDynamicComparisonConfidence { get; set; } = 0.0;
 
         public bool IsImageModelInUse(ImageModel image)
         {

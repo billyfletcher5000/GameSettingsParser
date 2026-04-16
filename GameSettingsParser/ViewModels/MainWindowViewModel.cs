@@ -72,6 +72,29 @@ namespace GameSettingsParser.ViewModels
         }
         public bool HasSelectedMarkupType => SelectedMarkupType != null;
 
+        public int WordGapThreshold
+        {
+            get => _parsingProfile.WordGapThreshold;
+            set
+            {
+                if (_parsingProfile.WordGapThreshold != value)
+                {
+                    _parsingProfile.WordGapThreshold = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        public double MinimumDynamicComparisonConfidence
+        {
+            get => _parsingProfile.MinimumDynamicComparisonConfidence;
+            set
+            {
+                _parsingProfile.MinimumDynamicComparisonConfidence = value;
+                RaisePropertyChanged();
+            }
+        }
+
         public ICommand AddImageCommand { get; }
         public ICommand RemoveImageCommand { get; }
         public ICommand GoToNextImageCommand { get; }

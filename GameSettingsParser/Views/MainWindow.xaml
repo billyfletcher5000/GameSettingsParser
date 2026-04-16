@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewmodels="clr-namespace:GameSettingsParser.ViewModels"
         xmlns:controls="clr-namespace:GameSettingsParser.Controls"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowViewModel, IsDesignTimeCreatable=False}"
         mc:Ignorable="d"
         Title="MainWindow">
@@ -17,63 +18,95 @@
         <Grid MinHeight="400" MinWidth="720" Margin="10, 10" Background="LightGray">
             <controls:MarkupCanvas ImageInstance="{Binding Path=SelectedImageInstance}" SelectedMarkupType="{Binding SelectedMarkupType}"/>
         </Grid>
-        <StackPanel Grid.Row="1" Orientation="Horizontal">
-            <GroupBox Grid.Row="1" Margin="10, 0, 10, 10">
-                <GroupBox.Header>
-                    <Label>Image Control</Label>
-                </GroupBox.Header>
-                <StackPanel Orientation="Horizontal">
-                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=AddImageCommand}">
-                        <TextBlock Text="+" Margin="6, 0"/>
-                    </Button>
-                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=RemoveImageCommand}">
-                        <TextBlock Text="-" Margin="8, 0"/>
-                    </Button>
-                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=GoToPreviousImageCommand}">
-                        <TextBlock Text="&lt;" Margin="10, 0"/>
-                    </Button>
-                    <ComboBox MinWidth="200" Margin="2, 0" 
-                              ItemsSource="{Binding Path=Images}" 
-                              SelectedItem="{Binding Path=SelectedImage, Mode=TwoWay}" 
-                              />
-                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=GoToNextImageCommand}">
-                        <TextBlock Text="&gt;" Margin="10, 0"/>
-                    </Button>
-                </StackPanel>
-            </GroupBox>
-            <GroupBox Grid.Row="1" Margin="10, 0, 10, 10">
-                <GroupBox.Header>
-                    <Label>Markup Control</Label>
-                </GroupBox.Header>
-                <StackPanel Orientation="Horizontal">
-                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=AddMarkupTypeCommand}">
-                        <TextBlock Text="+" Margin="6, 0"/>
-                    </Button>
-                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=RemoveMarkupTypeCommand}">
-                        <TextBlock Text="-" Margin="8, 0"/>
-                    </Button>
-                    <ComboBox MinWidth="200" Margin="2, 0" ItemsSource="{Binding Path=MarkupTypes}" SelectedItem="{Binding Path=SelectedMarkupType, Mode=TwoWay}" />
-                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=EditMarkupTypeCommand}">
-                        <TextBlock Text="Edit" Margin="8, 0"/>
-                    </Button>
-                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=ClearTypeInstancesCommand}">
-                        <TextBlock Text="Clear Type" Margin="8, 0"/>
-                    </Button>
-                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=ClearAllInstancesCommand}">
-                        <TextBlock Text="Clear All" Margin="8, 0"/>
-                    </Button>
-                </StackPanel>
-            </GroupBox>
-            <GroupBox Grid.Row="1" Margin="10, 0, 10, 10">
-                <GroupBox.Header>
-                    <Label>Export</Label>
-                </GroupBox.Header>
-                <StackPanel Orientation="Horizontal">
-                    <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=GatherAndExportSettingsCommand}">
-                        <TextBlock Text="Gather &amp; Export" Margin="8, 0"/>
-                    </Button>
-                </StackPanel>
-            </GroupBox>
+        <StackPanel Grid.Row="1" Orientation="Vertical">
+            <StackPanel Orientation="Horizontal">
+                <GroupBox Margin="10, 0, 10, 10">
+                    <GroupBox.Header>
+                        <Label>Image Control</Label>
+                    </GroupBox.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=AddImageCommand}">
+                            <TextBlock Text="+" Margin="6, 0"/>
+                        </Button>
+                        <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=RemoveImageCommand}">
+                            <TextBlock Text="-" Margin="8, 0"/>
+                        </Button>
+                        <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=GoToPreviousImageCommand}">
+                            <TextBlock Text="&lt;" Margin="10, 0"/>
+                        </Button>
+                        <ComboBox MinWidth="200" Margin="2, 0" 
+                                  ItemsSource="{Binding Path=Images}" 
+                                  SelectedItem="{Binding Path=SelectedImage, Mode=TwoWay}" 
+                                  />
+                        <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=GoToNextImageCommand}">
+                            <TextBlock Text="&gt;" Margin="10, 0"/>
+                        </Button>
+                    </StackPanel>
+                </GroupBox>
+                <GroupBox Margin="10, 0, 10, 10">
+                    <GroupBox.Header>
+                        <Label>Markup Control</Label>
+                    </GroupBox.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=AddMarkupTypeCommand}">
+                            <TextBlock Text="+" Margin="6, 0"/>
+                        </Button>
+                        <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=RemoveMarkupTypeCommand}">
+                            <TextBlock Text="-" Margin="8, 0"/>
+                        </Button>
+                        <ComboBox MinWidth="200" Margin="2, 0" ItemsSource="{Binding Path=MarkupTypes}" SelectedItem="{Binding Path=SelectedMarkupType, Mode=TwoWay}" />
+                        <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=EditMarkupTypeCommand}">
+                            <TextBlock Text="Edit" Margin="8, 0"/>
+                        </Button>
+                        <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=ClearTypeInstancesCommand}">
+                            <TextBlock Text="Clear Type" Margin="8, 0"/>
+                        </Button>
+                        <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=ClearAllInstancesCommand}">
+                            <TextBlock Text="Clear All" Margin="8, 0"/>
+                        </Button>
+                    </StackPanel>
+                </GroupBox>
+                <GroupBox Margin="10, 0, 10, 10">
+                    <GroupBox.Header>
+                        <Label>Export</Label>
+                    </GroupBox.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=GatherAndExportSettingsCommand}">
+                            <TextBlock Text="Gather &amp; Export" Margin="8, 0"/>
+                        </Button>
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <GroupBox Margin="10, 0, 10, 10">
+                    <GroupBox.Header>
+                        <Label>Fine Control</Label>
+                    </GroupBox.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" Margin="5, 0">
+                            <StackPanel.ToolTip>
+                                The number of pixels between words for them to be considered part of the same block of text, tweak if you find words missing from titles. Only applies to dynamic markup types.
+                            </StackPanel.ToolTip>
+                            <Label>
+                                Space Distance (px):
+                            </Label>
+                            <xctk:IntegerUpDown Height="25" Width="80" Value="{Binding Path=WordGapThreshold}" Minimum="-1" Increment="1" />
+                        </StackPanel>
+                        
+                        <StackPanel Orientation="Horizontal" Margin="5, 0">
+                            <StackPanel.ToolTip>
+                                The minimum confidence (0.0-1.0) the text comparison service must achieve to consider a dynamic markdown type as the most likely result,
+                                leave at 0.0 unless you are using a comparison mode you really understand!
+                            </StackPanel.ToolTip>
+                            <Label>
+                                Minimum Comparison Confidence:
+                            </Label>
+                            <xctk:DoubleUpDown Height="25" Width="80" Value="{Binding Path=MinimumDynamicComparisonConfidence}" Minimum="0.0" Maximum="1.0" Increment="0.01" />
+                        </StackPanel>
+                    </StackPanel>
+                    
+                </GroupBox>
+            </StackPanel>
         </StackPanel>
     </Grid>
 

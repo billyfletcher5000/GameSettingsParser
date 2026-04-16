@@ -17,13 +17,6 @@ public class UserSettings
     
     public string SelectedMarkupType { get; set; } = "";
     
-    /// <summary>
-    /// The amount of pixels between words' bounding boxes for them to be considered part of the same text string
-    /// </summary>
-    public int WordGapThreshold { get; set; } = 10;
-
-    public float MinimumDynamicComparisonConfidence { get; set; } = 0.0f;
-    
     public ObservableCollection<Type> TextComparisonServices { get; init; } = [typeof(ColorSimilarityTextComparisonService)];
 
     public struct WindowSettings
