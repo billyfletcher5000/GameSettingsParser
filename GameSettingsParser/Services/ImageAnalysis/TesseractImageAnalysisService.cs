@@ -182,6 +182,9 @@ namespace GameSettingsParser.Services.ImageAnalysis
                     
                 foreach (var markupInstance in markupInstances)
                 {
+                    if (imageInstance.Image == null || !File.Exists(imageInstance.Image.Path))
+                        continue;
+                    
                     Bitmap bitmap = new Bitmap(imageInstance.Image.Path);
                     var croppedImage = bitmap.Clone(RectToRectangle(markupInstance.Rect), bitmap.PixelFormat);
                     targetBitmaps.Add(croppedImage);

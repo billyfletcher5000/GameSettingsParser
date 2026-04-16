@@ -32,11 +32,16 @@ namespace GameSettingsParser.Services.Validation
 
             foreach (var imageInstance in profile.ImageInstances)
             {
-                if(!File.Exists(imageInstance.Image.Path))
-                    result.Errors.Add($"Image '{imageInstance.Image.Name}' does not exist at '{imageInstance.Image.Path}'.");
+                if(imageInstance.Image == null)
+                    result.Errors.Add($"Image instance has null Image property.");
+                else
+                {
+                    if(!File.Exists(imageInstance.Image.Path)) 
+                        result.Errors.Add($"Image '{imageInstance.Image.Name}' does not exist at '{imageInstance.Image.Path}'.");
                 
-                if(imageInstance.MarkupInstances.Count == 0)
-                    result.Warnings.Add($"Image '{imageInstance.Image.Name}' has no markup instances.");
+                    if(imageInstance.MarkupInstances.Count == 0)
+                        result.Warnings.Add($"Image '{imageInstance.Image.Name}' has no markup instances.");
+                }
             }
             
             return result;

@@ -14,7 +14,7 @@ using DrawableRectangle = System.Windows.Shapes.Rectangle;
 
 namespace GameSettingsParser.Controls
 {
-    public partial class MarkupCanvas : UserControl
+    public partial class MarkupCanvas
     {
         public static readonly DependencyProperty ImageInstanceProperty =
             DependencyProperty.Register(nameof(ImageInstance),
@@ -31,9 +31,9 @@ namespace GameSettingsParser.Controls
             if (eNewValue != null)
             {
                 ImageInstance.MarkupInstances.CollectionChanged += MarkupInstancesOnCollectionChanged;
-                if (ImageInstance != null && File.Exists(ImageInstance.Image.Path))
+                if (ImageInstance is { Image: not null } && File.Exists(ImageInstance.Image.Path))
                 {
-                    BitmapImage bitmapImage = new BitmapImage();
+                    var bitmapImage = new BitmapImage();
                     bitmapImage.BeginInit();
                     bitmapImage.UriSource = new Uri(ImageInstance.Image.Path);
                     bitmapImage.EndInit();
@@ -64,12 +64,15 @@ namespace GameSettingsParser.Controls
                     {
                         ImageInstance.MarkupInstances.CollectionChanged += MarkupInstancesOnCollectionChanged;
                         CreateInitialDisplays();
-                        BitmapImage bitmapImage =  new BitmapImage();
-                        bitmapImage.BeginInit();
-                        bitmapImage.UriSource = new Uri(ImageInstance.Image.Path);
-                        bitmapImage.EndInit();
-                        _imageSize = new Size(bitmapImage.PixelWidth, bitmapImage.PixelHeight);
-                        MainImage.Source = bitmapImage;
+                        if (ImageInstance.Image != null && File.Exists(ImageInstance.Image.Path))
+                        {
+                            BitmapImage bitmapImage = new BitmapImage();
+                            bitmapImage.BeginInit();
+                            bitmapImage.UriSource = new Uri(ImageInstance.Image.Path);
+                            bitmapImage.EndInit();
+
+                            MainImage.Source = bitmapImage;
+                        }
                     }
                 }
             }
@@ -169,14 +172,13 @@ namespace GameSettingsParser.Controls
         public bool HasImageInstance => ImageInstance != null;
         public bool HasSelectedMarkupType => SelectedMarkupType != null;
         
-        private bool _isDragActive = false;
+        private bool _isDragActive;
         private Point _dragStartPoint;
         private Point _dragEndPoint;
-        private Size _imageSize;
         private readonly BidirectionalDictionary<MarkupInstanceModel, DrawableRectangle> _markupRectangles = [];
         private readonly Dictionary<DrawableRectangle, RectangleTransformAdorner> _rectangleTransformAdorners = [];
-        private DrawableRectangle? _activeDragRectangle = null;
-        private DrawableRectangle? _selectedRectangle = null;
+        private DrawableRectangle? _activeDragRectangle;
+        private DrawableRectangle? _selectedRectangle;
 
         public MarkupCanvas()
         {
@@ -265,6 +267,9 @@ namespace GameSettingsParser.Controls
         {
             if (_selectedRectangle == null || !_markupRectangles.Inverse.TryGetValue(_selectedRectangle, out var markupInstance))
                 return;
+
+            if (markupInstance.Type == null)
+                return;
             
             var color = markupInstance.Type.Color;
             _selectedRectangle.Stroke = new SolidColorBrush(color);
@@ -317,7 +322,7 @@ namespace GameSettingsParser.Controls
 
         private void CreateMarkupDisplays(MarkupInstanceModel markupInstance)
         {
-            if (_markupRectangles.ContainsKey(markupInstance))
+            if (markupInstance == null || markupInstance.Type == null || _markupRectangles.ContainsKey(markupInstance))
                 return;
             
             var drawableRectangle = CreateDrawableRectangle(markupInstance.Type.Color, markupInstance.Rect);

@@ -31,18 +31,17 @@ namespace GameSettingsParser.Adorners
         private readonly Rectangle _rectangle;
         private Thickness _thickness;
         private Point _minimumSize;
-        private Brush _brush = new SolidColorBrush(Colors.LightPink);
 
         private readonly VisualCollection _visualCollection;
         private Thumb? _moveThumb;
-        private Thumb _leftThumb;
-        private Thumb _topThumb;
-        private Thumb _rightThumb;
-        private Thumb _bottomThumb;
-        private Thumb _topLeftThumb;
-        private Thumb _topRightThumb;
-        private Thumb _bottomLeftThumb;
-        private Thumb _bottomRightThumb;
+        private Thumb? _leftThumb;
+        private Thumb? _topThumb;
+        private Thumb? _rightThumb;
+        private Thumb? _bottomThumb;
+        private Thumb? _topLeftThumb;
+        private Thumb? _topRightThumb;
+        private Thumb? _bottomLeftThumb;
+        private Thumb? _bottomRightThumb;
         
         public RectangleTransformAdorner(UIElement adornedElement, Thickness thickness, double minimumCentreSize = 4.0) : base(adornedElement)
         {
@@ -193,26 +192,26 @@ namespace GameSettingsParser.Adorners
 
         private void OnResizeDragDelta(object sender, DragDeltaEventArgs e, DragDirection direction)
         {
-            double width = (double) _rectangle.GetValue(Canvas.WidthProperty);
-            double height = (double) _rectangle.GetValue(Canvas.HeightProperty);
-            double minimumWidthAdjustment = (width - e.HorizontalChange) - (Math.Max(width - e.HorizontalChange, _minimumSize.Y));
-            double minimumHeightAdjustment = (height - e.VerticalChange) - (Math.Max(height - e.VerticalChange, _minimumSize.Y));
+            var width = (double) _rectangle.GetValue(Canvas.WidthProperty);
+            var height = (double) _rectangle.GetValue(Canvas.HeightProperty);
+            var minimumWidthAdjustment = (width - e.HorizontalChange) - (Math.Max(width - e.HorizontalChange, _minimumSize.Y));
+            var minimumHeightAdjustment = (height - e.VerticalChange) - (Math.Max(height - e.VerticalChange, _minimumSize.Y));
 
             if (direction.HasFlag(DragDirection.Left))
             {
-                double x = (double)_rectangle.GetValue(Canvas.LeftProperty);
+                var x = (double)_rectangle.GetValue(Canvas.LeftProperty);
                 _rectangle.SetValue(Canvas.LeftProperty, x + e.HorizontalChange + minimumWidthAdjustment);
             }
 
             if (direction.HasFlag(DragDirection.Top))
             {
-                double y = (double)_rectangle.GetValue(Canvas.TopProperty);
+                var y = (double)_rectangle.GetValue(Canvas.TopProperty);
                 _rectangle.SetValue(Canvas.TopProperty, y + e.VerticalChange + minimumHeightAdjustment);
             }
 
             if (direction.HasFlag(DragDirection.Left) || direction.HasFlag(DragDirection.Right))
             {
-                double newWidth = direction.HasFlag(DragDirection.Right)
+                var newWidth = direction.HasFlag(DragDirection.Right)
                     ? Math.Max(width + e.HorizontalChange, _minimumSize.X)
                     : width - (minimumWidthAdjustment + e.HorizontalChange);
                 _rectangle.SetValue(Canvas.WidthProperty, newWidth);
@@ -220,7 +219,7 @@ namespace GameSettingsParser.Adorners
 
             if (direction.HasFlag(DragDirection.Top) || direction.HasFlag(DragDirection.Bottom))
             {
-                double newHeight = direction.HasFlag(DragDirection.Bottom)
+                var newHeight = direction.HasFlag(DragDirection.Bottom)
                     ? Math.Max(height + e.VerticalChange, _minimumSize.Y)
                     : height - (minimumHeightAdjustment + e.VerticalChange);
                 _rectangle.SetValue(Canvas.HeightProperty, newHeight);
@@ -232,9 +231,9 @@ namespace GameSettingsParser.Adorners
 
         private void OnMoveDragDelta(object sender, DragDeltaEventArgs e)
         {
-            double x = (double) _rectangle.GetValue(Canvas.LeftProperty);
+            var x = (double) _rectangle.GetValue(Canvas.LeftProperty);
             _rectangle.SetValue(Canvas.LeftProperty, x + e.HorizontalChange);
-            double y = (double) _rectangle.GetValue(Canvas.TopProperty);
+            var y = (double) _rectangle.GetValue(Canvas.TopProperty);
             _rectangle.SetValue(Canvas.TopProperty, y + e.VerticalChange);
             OnTransformChanged?.Invoke(this, new RectangleOperationEventArgs { Rectangle = _rectangle });
             e.Handled = true;
