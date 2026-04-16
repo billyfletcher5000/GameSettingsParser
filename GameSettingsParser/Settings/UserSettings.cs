@@ -1,6 +1,8 @@
-﻿using System.IO;
+﻿using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows;
 using GameSettingsParser.Model;
+using GameSettingsParser.Services.TextComparison;
 using Newtonsoft.Json;
 
 namespace GameSettingsParser.Settings;
@@ -20,8 +22,9 @@ public class UserSettings
     /// </summary>
     public int WordGapThreshold { get; set; } = 10;
 
-    public float MinimumDynamicComparisonConfidence { get; set; } = 0.5f;
-
+    public float MinimumDynamicComparisonConfidence { get; set; } = 0.0f;
+    
+    public ObservableCollection<Type> TextComparisonServices { get; init; } = [typeof(ColorSimilarityTextComparisonService)];
 
     public struct WindowSettings
     {

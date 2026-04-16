@@ -1,11 +1,18 @@
 ﻿using System.Drawing;
+using System.IO;
+using System.Net;
+using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Shapes;
 using GameSettingsParser.Model;
 using GameSettingsParser.Services.TextComparison;
 using GameSettingsParser.Settings;
 using Tesseract;
+using ImageFormat = System.Drawing.Imaging.ImageFormat;
+using Path = System.IO.Path;
 using Point = System.Drawing.Point;
 using Rect = System.Windows.Rect;
+using Rectangle = System.Drawing.Rectangle;
 
 
 namespace GameSettingsParser.Services.ImageAnalysis
@@ -73,18 +80,22 @@ namespace GameSettingsParser.Services.ImageAnalysis
 
                     using (var engine = new TesseractEngine(@"./TesseractData", "eng", EngineMode.Default))
                     {
-                        using (var img = PixConverter.ToPix(bitmap))
+                        using (var img = PixConverter.ToPix(croppedImage))
                         {
                             using (var page = engine.Process(img))
                             {
                                 var text = page.GetText();
+                                
+                                var imageFilename = Path.GetFileName(imagePath);
+                                Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/");
+                                croppedImage.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/{imageFilename}_{markupType.Name}.png", ImageFormat.Png);
                                 
                                 ImageAnalysisResultModel.Setting setting = GetOrCreateSetting(imageAnalysisResult, imagePath);
                         
                                 if(!setting.MarkupTypeToValues.ContainsKey(markupType.Name))
                                     setting.MarkupTypeToValues.Add(markupType.Name, new List<string>());
                         
-                                setting.MarkupTypeToValues[markupType.Name].Add(text);
+                                setting.MarkupTypeToValues[markupType.Name].Add(SanitizeOCRText(text));
                             }
                         }
                     }
@@ -96,9 +107,13 @@ namespace GameSettingsParser.Services.ImageAnalysis
 
         private static ImageAnalysisResultModel.Setting GetOrCreateSetting(ImageAnalysisResultModel imageAnalysisResult, string imagePath)
         {
-            return imageAnalysisResult.Settings.Any(item => item.ScreenshotPath == imagePath) 
-                ? imageAnalysisResult.Settings.First(item => item.ScreenshotPath == imagePath) 
-                : new ImageAnalysisResultModel.Setting();
+            if(imageAnalysisResult.Settings.Any(item => item.ScreenshotPath == imagePath)) 
+                return imageAnalysisResult.Settings.First(item => item.ScreenshotPath == imagePath);
+
+            var setting = new ImageAnalysisResultModel.Setting() { ScreenshotPath = imagePath };
+            imageAnalysisResult.Settings.Add(setting);
+            
+            return setting;
         }
 
         private Rectangle GetFirstAbsoluteRectangle(MarkupTypeModel markupType, ParsingProfileModel parsingProfile)
@@ -170,6 +185,9 @@ namespace GameSettingsParser.Services.ImageAnalysis
                     Bitmap bitmap = new Bitmap(imageInstance.Image.Path);
                     var croppedImage = bitmap.Clone(RectToRectangle(markupInstance.Rect), bitmap.PixelFormat);
                     targetBitmaps.Add(croppedImage);
+
+                    Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/cropped_targets/");
+                    croppedImage.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/cropped_targets/{markupType.Name}_{imageInstance.Image.Name}.png", ImageFormat.Png);
                 }
             }
 
@@ -188,6 +206,10 @@ namespace GameSettingsParser.Services.ImageAnalysis
                     var bitmap = new Bitmap(imagePath);
                     if (markupType.HasSearchArea)
                         bitmap = bitmap.Clone(searchAreaRectangle!.Value, bitmap.PixelFormat);
+                    
+                    
+                    var currentWordSequence = new List<(string, Rectangle)>();
+                    var isHighestConfidenceWordSequence = false;
 
                     using (var img = PixConverter.ToPix(bitmap))
                     {
@@ -199,18 +221,21 @@ namespace GameSettingsParser.Services.ImageAnalysis
 
                                 do
                                 {
-                                    var currentWordSequence = new List<(string, Rectangle)>();
-                                    var isHighestConfidenceWordSequence = false;
-                                    
                                     do
                                     {
                                         if (!iterator.TryGetBoundingBox(PageIteratorLevel.Word, out var boundingBox))
                                             continue;
 
+                                        var lineText = iterator.GetText(PageIteratorLevel.TextLine);
+                                        Console.WriteLine($"Line: {lineText}");
+                                        
                                         var wordText = iterator.GetText(PageIteratorLevel.Word);
 
                                         var rectangle = RectToRectangle(boundingBox);
                                         var regionBitmap = bitmap.Clone(rectangle, bitmap.PixelFormat);
+                                        string imageFilename = Path.GetFileName(imagePath);
+                                        Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/");
+                                        regionBitmap.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/{imageFilename}_{wordText}.png", ImageFormat.Png);
 
                                         var textComparisonService = ContainerLocator.Current.Resolve<ITextComparisonService>();
 
@@ -225,6 +250,8 @@ namespace GameSettingsParser.Services.ImageAnalysis
                                                 bestMatchText = wordText;
                                                 isHighestConfidenceWordSequence = true;
                                             }
+                                            
+                                            Console.WriteLine($"Text: {wordText}, Confidence: {newConfidence}, Best Match: {bestMatchText}, Best Match Confidence: {confidence}");
                                         }
 
                                         // Check the word sequence hasn't ended, if it has, condense the last sequence if it's likely our target
@@ -247,6 +274,16 @@ namespace GameSettingsParser.Services.ImageAnalysis
                                         currentWordSequence.Add((wordText, rectangle));
                                     }
                                     while (iterator.Next(PageIteratorLevel.TextLine, PageIteratorLevel.Word));
+                                    
+                                    if (isHighestConfidenceWordSequence)
+                                    {
+                                        CondenseWordSequence(currentWordSequence, out var condensedText, out var condensedRect);
+                                        bestMatchText = condensedText;
+                                        bestMatchRectangle = condensedRect;
+                                        isHighestConfidenceWordSequence = false;
+                                    }
+                                    
+                                    currentWordSequence.Clear();
                                 } 
                                 while (iterator.Next(PageIteratorLevel.TextLine));
                             }
@@ -261,7 +298,10 @@ namespace GameSettingsParser.Services.ImageAnalysis
                         if(!setting.MarkupTypeToValues.ContainsKey(markupType.Name))
                             setting.MarkupTypeToValues.Add(markupType.Name, new List<string>());
                         
-                        setting.MarkupTypeToValues[markupType.Name].Add(bestMatchText);
+                        setting.MarkupTypeToValues[markupType.Name].Add(SanitizeOCRText(bestMatchText));
+                        
+                        if(searchAreaRectangle.HasValue)
+                            bestMatchRectangle = bestMatchRectangle.Value with { X = bestMatchRectangle.Value.Location.X + searchAreaRectangle.Value.Location.X, Y = bestMatchRectangle.Value.Location.Y + searchAreaRectangle.Value.Location.Y };
                         
                         dynamicMarkupInstances.Add(imagePath, new DynamicMarkupInstance() { Rectangle = bestMatchRectangle.Value, Type = markupType });
                     }
@@ -274,8 +314,15 @@ namespace GameSettingsParser.Services.ImageAnalysis
         private void CondenseWordSequence(List<(string, Rectangle)> wordSequence, out string text, out Rectangle boundingBox)
         {
             text = string.Join(" ", wordSequence.Select(word => word.Item1));
-            var combinedBox = Rectangle.Empty;
-            wordSequence.ForEach(pair => { combinedBox = Rectangle.Union(combinedBox, pair.Item2); });
+            var firstItem = wordSequence.First();
+            var combinedBox = firstItem.Item2;
+            foreach (var wordRectPair in wordSequence)
+            {
+                if (wordRectPair == firstItem)
+                    continue;
+                
+                combinedBox = Rectangle.Union(combinedBox, wordRectPair.Item2);
+            }
             boundingBox = combinedBox;
         }
 
@@ -307,6 +354,15 @@ namespace GameSettingsParser.Services.ImageAnalysis
         private static Rect RectangleToRect(Rectangle rect)
         {
             return new Rect(rect.X, rect.Y, rect.Width, rect.Height);
+        }
+        
+        private static string SanitizeOCRText(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return string.Empty;
+
+            // Replace any run of whitespace (spaces, tabs, newlines, etc) with a single space and trim
+            return Regex.Replace(input, @"\s+", " ").Trim();
         }
     }
 }

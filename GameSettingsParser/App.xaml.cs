@@ -25,7 +25,7 @@ public partial class App : PrismApplication
         containerRegistry.RegisterForNavigation<MainWindow, MainWindowViewModel>();
         containerRegistry.Register<IDataExportService, DebugDataExportService>();
         containerRegistry.Register<IImageAnalysisService, TesseractImageAnalysisService>();
-        containerRegistry.Register<ITextComparisonService, GoogleViTTextComparisonService>();
+        containerRegistry.Register<ITextComparisonService, CombinedTextComparisonService>();
         containerRegistry.Register<IProfileValidationService, BasicProfileValidationService>();
     }
 
