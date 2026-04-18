@@ -29,6 +29,28 @@ namespace GameSettingsParser.Services.Validation
                 if(markupType.IsPositionedRelativeToOther && !profile.MarkupTypes.Any(item => item.Name.Equals(markupType.PositionedRelativeTo)))
                     result.Errors.Add($"Markup type '{markupType.Name}' is positioned relatively to '{markupType.PositionedRelativeTo}', but this markup type does not exist.");
             }
+            
+            if(profile.MarkupTypes.Count(type => type.ExportSignificance == ExportSignificance.Section) > 1)
+                result.Errors.Add("Multiple sections found in parsing profile. Only one section is supported.");
+            
+            var numKeys = profile.MarkupTypes.Count(type => type.IsExportRowKey);
+            switch (numKeys)
+            {
+                case 0:
+                    result.Warnings.Add("No row keys found in parsing profile, items will not condense by a single key.");
+                    break;
+                case > 1:
+                    result.Errors.Add("Multiple row keys found in parsing profile, only one row key is supported.");
+                    break;
+            }
+
+            if (profile.MarkupTypes.Count(type => type.ExportSignificance == ExportSignificance.ItemProperty) == 0)
+            {
+                if(numKeys == 1)
+                    result.Warnings.Add("No item properties found in parsing profile.");
+                else
+                    result.Errors.Add("No item properties or item keys found in parsing profile.");
+            }
 
             foreach (var imageInstance in profile.ImageInstances)
             {

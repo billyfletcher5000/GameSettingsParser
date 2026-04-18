@@ -23,7 +23,7 @@ public partial class App : PrismApplication
     protected override void RegisterTypes(IContainerRegistry containerRegistry)
     {
         containerRegistry.RegisterForNavigation<MainWindow, MainWindowViewModel>();
-        containerRegistry.Register<IDataExportService, DebugDataExportService>();
+        containerRegistry.Register<IDataExportService, HTMLDataExportService>();
         containerRegistry.Register<IImageAnalysisService, TesseractImageAnalysisService>();
         containerRegistry.Register<ITextComparisonService, CombinedTextComparisonService>();
         containerRegistry.Register<IProfileValidationService, BasicProfileValidationService>();

@@ -4,6 +4,12 @@ using Newtonsoft.Json;
 
 namespace GameSettingsParser.Model
 {
+    public enum ExportSignificance
+    {
+        Section,
+        ItemProperty
+    }
+    
     public enum RelativePositioningType
     {
         TopLeft,
@@ -37,6 +43,12 @@ namespace GameSettingsParser.Model
         public string SearchArea { get; set; } = String.Empty;
     
         public bool HasSearchArea => !string.IsNullOrEmpty(SearchArea);
+        
+        public ExportSignificance ExportSignificance { get; set; } = ExportSignificance.ItemProperty;
+        
+        public int ExportPropertyOrder { get; set; } = 0;
+        
+        public bool IsExportRowKey { get; set; } = false;
     
         public override string ToString() => Name;
 

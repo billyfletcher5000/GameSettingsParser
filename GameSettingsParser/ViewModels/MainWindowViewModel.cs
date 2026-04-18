@@ -5,6 +5,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using System.Xml.Linq;
 using Microsoft.Win32;
 using GameSettingsParser.Model;
 using GameSettingsParser.Services.DataExport;
@@ -106,8 +107,10 @@ namespace GameSettingsParser.ViewModels
         public ICommand ClearTypeInstancesCommand { get; }
         public ICommand ClearAllInstancesCommand { get; }
         
-        public ICommand GenerateTesseractDataCommand { get; }
-        public ICommand GatherAndExportSettingsCommand { get; }
+        public ICommand ExportToFileCommand { get; }
+        public ICommand ExportToClipboardCommand { get; }
+        
+        public ICommand TestButtonCommand { get; }
         
         private readonly IImageAnalysisService _imageAnalysisService;
         private readonly IDataExportService _dataExportService;
@@ -130,9 +133,12 @@ namespace GameSettingsParser.ViewModels
             ClearTypeInstancesCommand = new DelegateCommand(ClearCurrentTypeMarkupInstances, () => HasSelectedImage && HasSelectedMarkupType && SelectedImageInstance!.MarkupInstances.Count(instance => instance.Type == SelectedMarkupType) > 0);
             ClearAllInstancesCommand = new DelegateCommand(ClearAllMarkupInstances, () => HasSelectedImage && HasSelectedMarkupType && SelectedImageInstance!.MarkupInstances.Count > 0);
             
-            GenerateTesseractDataCommand = new DelegateCommand(GenerateTesseractData, () => HasSelectedImage && HasSelectedMarkupType);
-            GatherAndExportSettingsCommand = new DelegateCommand(GatherAndExportSettings, CanGatherAndExport);
+            ExportToFileCommand = new DelegateCommand(ExportToFile, () => CanGatherAndExport() && _dataExportService.SupportsExportToFile);
+            ExportToClipboardCommand = new DelegateCommand(ExportToClipboard, () => CanGatherAndExport() && _dataExportService.SupportsExportToClipboard);
 
+            // Debugging
+            TestButtonCommand = new DelegateCommand(TestButton);
+            
             _parsingProfile = UserSettings.Instance.ParsingProfile;
             SelectedImage = !string.IsNullOrEmpty(UserSettings.Instance.SelectedImageModel) 
                 ? Images.FirstOrDefault(image => image.Name == UserSettings.Instance.SelectedImageModel) 
@@ -284,61 +290,37 @@ namespace GameSettingsParser.ViewModels
             SelectedImageInstance?.MarkupInstances.RemoveAll(instance => instance.Type == SelectedMarkupType);
         }
 
-        public void GenerateTesseractData()
+        public void TestButton()
         {
-            if (SelectedImageInstance == null || SelectedMarkupType == null || SelectedImageInstance.Image == null)
-                return;
-            
-            try
-            {
-                using (var engine = new TesseractEngine(@"./TesseractData", "eng", EngineMode.Default))
-                {
-                    var bitmapImage =  new BitmapImage();
-                    bitmapImage.BeginInit();
-                    bitmapImage.UriSource = new Uri(SelectedImageInstance.Image.Path);
-                    bitmapImage.EndInit();
-                    
-                    using (var img = PixConverter.ToPix(BitmapImage2Bitmap(bitmapImage)))
-                    {
-                        using (var page = engine.Process(img))
-                        {
-                            var text = page.GetText();
-                            Console.WriteLine("Mean confidence: {0}", page.GetMeanConfidence());
-                            Console.WriteLine("Text (GetText): \r\n{0}", text);
-
-                            var regions = page.GetSegmentedRegions(PageIteratorLevel.Word);
-                            foreach (var rectangle in regions)
-                            {
-                                SelectedImageInstance?.MarkupInstances.Add(new MarkupInstanceModel()
-                                {
-                                    Rect = new Rect(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height),
-                                    Type = SelectedMarkupType
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message);
-            }
         }
         
-        private Bitmap BitmapImage2Bitmap(BitmapImage bitmapImage)
+        private void ExportToFile()
         {
-            using(var outStream = new MemoryStream())
-            {
-                BitmapEncoder enc = new BmpBitmapEncoder();
-                enc.Frames.Add(BitmapFrame.Create(bitmapImage));
-                enc.Save(outStream);
-                var bitmap = new Bitmap(outStream);
+            var analysisResult = GatherExportResult();
 
-                return new Bitmap(bitmap);
-            }
+            var saveFileDialog = new SaveFileDialog()
+            {
+                Title = "Save Exported Data",
+                Filter = _dataExportService.FileFilter,
+                DefaultExt = _dataExportService.FileExtension,
+                FileName = "Exported Data"
+            };
+
+            if (saveFileDialog.ShowDialog() == false)
+                return;
+            
+            if (analysisResult != null)
+                _dataExportService.ExportToFile(analysisResult, _parsingProfile, saveFileDialog.FileName);
         }
 
-        private void GatherAndExportSettings()
+        private void ExportToClipboard()
+        {
+            var analysisResult = GatherExportResult();
+            if (analysisResult != null)
+                _dataExportService.ExportToClipboard(analysisResult, _parsingProfile);
+        }
+
+        private ImageAnalysisResultModel? GatherExportResult()
         {
             var validationResult = _validationService.Validate(_parsingProfile);
             Console.WriteLine(validationResult);
@@ -346,7 +328,7 @@ namespace GameSettingsParser.ViewModels
             if (validationResult.Type == ProfileValidationResultType.Invalid)
             {
                 MessageBox.Show("Validation failed. Please fix the following issues before continuing:\n\n" + string.Join('\n', validationResult.Errors), "Validation Failed", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                return null;
             }
 
             var openFileDialog = new OpenFileDialog
@@ -359,14 +341,11 @@ namespace GameSettingsParser.ViewModels
             var dialogResult = openFileDialog.ShowDialog();
 
             if (dialogResult == false)
-                return;
+                return null;
             
             var imagePaths = openFileDialog.FileNames;
 
-            var analysisResult = _imageAnalysisService.Analyse(_parsingProfile, imagePaths);
-            
-            if(analysisResult != null)
-                _dataExportService.Export(analysisResult, null);
+            return _imageAnalysisService.Analyse(_parsingProfile, imagePaths);
         }
         
         private void OnMarkupInstancesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs args)
@@ -384,8 +363,9 @@ namespace GameSettingsParser.ViewModels
             ((DelegateCommand)EditMarkupTypeCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)ClearTypeInstancesCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)ClearAllInstancesCommand).RaiseCanExecuteChanged();
-            ((DelegateCommand)GenerateTesseractDataCommand).RaiseCanExecuteChanged();
-            ((DelegateCommand)GatherAndExportSettingsCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)TestButtonCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)ExportToFileCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)ExportToClipboardCommand).RaiseCanExecuteChanged();
         }
     }
 }

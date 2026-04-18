@@ -96,12 +96,12 @@ namespace GameSettingsParser.Services.ImageAnalysis
                             Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/");
                             croppedImage.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/{imageFilename}_{markupType.Name}.png", ImageFormat.Png);
                             
-                            ImageAnalysisResultModel.Setting setting = GetOrCreateSetting(imageAnalysisResult, imagePath);
+                            ImageAnalysisResultModel.ProcessedImage processedImage = GetOrCreateSetting(imageAnalysisResult, imagePath);
                     
-                            if(!setting.MarkupTypeToValues.ContainsKey(markupType.Name))
-                                setting.MarkupTypeToValues.Add(markupType.Name, new List<string>());
+                            if(!processedImage.MarkupTypeToValues.ContainsKey(markupType))
+                                processedImage.MarkupTypeToValues.Add(markupType, new List<string>());
                     
-                            setting.MarkupTypeToValues[markupType.Name].Add(SanitizeOCRText(text));
+                            processedImage.MarkupTypeToValues[markupType].Add(SanitizeOCRText(text));
                         }
                     }
                     
@@ -111,13 +111,13 @@ namespace GameSettingsParser.Services.ImageAnalysis
             return imageAnalysisResult;
         }
 
-        private static ImageAnalysisResultModel.Setting GetOrCreateSetting(ImageAnalysisResultModel imageAnalysisResult, string imagePath)
+        private static ImageAnalysisResultModel.ProcessedImage GetOrCreateSetting(ImageAnalysisResultModel imageAnalysisResult, string imagePath)
         {
-            if(imageAnalysisResult.Settings.Any(item => item.ScreenshotPath == imagePath)) 
-                return imageAnalysisResult.Settings.First(item => item.ScreenshotPath == imagePath);
+            if(imageAnalysisResult.ProcessedImages.Any(item => item.ScreenshotPath == imagePath)) 
+                return imageAnalysisResult.ProcessedImages.First(item => item.ScreenshotPath == imagePath);
 
-            var setting = new ImageAnalysisResultModel.Setting() { ScreenshotPath = imagePath };
-            imageAnalysisResult.Settings.Add(setting);
+            var setting = new ImageAnalysisResultModel.ProcessedImage() { ScreenshotPath = imagePath };
+            imageAnalysisResult.ProcessedImages.Add(setting);
             
             return setting;
         }
@@ -301,10 +301,10 @@ namespace GameSettingsParser.Services.ImageAnalysis
                     // TODO: Add method to GetOrCreate
                     var setting = GetOrCreateSetting(resultModel, imagePath);
                     
-                    if(!setting.MarkupTypeToValues.ContainsKey(markupType.Name))
-                        setting.MarkupTypeToValues.Add(markupType.Name, new List<string>());
+                    if(!setting.MarkupTypeToValues.ContainsKey(markupType))
+                        setting.MarkupTypeToValues.Add(markupType, new List<string>());
                     
-                    setting.MarkupTypeToValues[markupType.Name].Add(SanitizeOCRText(bestMatchText));
+                    setting.MarkupTypeToValues[markupType].Add(SanitizeOCRText(bestMatchText));
                     
                     if(searchAreaRectangle.HasValue)
                         bestMatchRectangle = bestMatchRectangle.Value with { X = bestMatchRectangle.Value.Location.X + searchAreaRectangle.Value.Location.X, Y = bestMatchRectangle.Value.Location.Y + searchAreaRectangle.Value.Location.Y };

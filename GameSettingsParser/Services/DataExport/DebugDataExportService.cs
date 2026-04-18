@@ -1,19 +1,35 @@
 ﻿using System.IO;
 using System.Text;
+using System.Windows;
 using GameSettingsParser.Model;
 
 namespace GameSettingsParser.Services.DataExport
 {
     public class DebugDataExportService : IDataExportService
     {
-        public bool ExportsToFile => true;
+        public bool SupportsExportToFile => true;
+        public bool SupportsExportToClipboard => true;
+        public string FileExtension => ".txt";
+        public string FileFilter => "Text Files (*.txt)|*.txt";
+
+        public void ExportToClipboard(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)
+        {
+            var output = CreateDebugOutput(imageAnalysisResult, parsingProfile);
+            Clipboard.SetText(output);
+        }
+
+        public void ExportToFile(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath)
+        {
+            var output = CreateDebugOutput(imageAnalysisResult, parsingProfile);
+            File.WriteAllText(outputPath, output);
+        }
         
-        public void Export(ImageAnalysisResultModel imageAnalysisResult, string? outputPath)
+        private string CreateDebugOutput(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)
         {
             StringBuilder sb = new();
 
             sb.AppendLine("Image Results:");
-            foreach (var setting in imageAnalysisResult.Settings)
+            foreach (var setting in imageAnalysisResult.ProcessedImages)
             {
                 sb.AppendLine($"\tScreenshot: {setting.ScreenshotPath}");
                 foreach (var (markupType, values) in setting.MarkupTypeToValues)
@@ -22,13 +38,7 @@ namespace GameSettingsParser.Services.DataExport
                 }
             }
             
-            var output = sb.ToString();
-            Console.WriteLine(output);
-
-            if (outputPath != null)
-            {
-                File.WriteAllText(outputPath, output);
-            }
+            return sb.ToString();
         }
     }
 }

@@ -64,6 +64,9 @@ namespace GameSettingsParser.ViewModels
                 MarkupTypeModel.IsSearchArea = value;
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(HasSearchAreaOptions));
+                RaisePropertyChanged(nameof(CanSetExportSignificance));
+                RaisePropertyChanged(nameof(CanBeExportRowKey));
+                RaisePropertyChanged(nameof(CanHaveExportPropertyOrder));
             }
         }
 
@@ -99,6 +102,39 @@ namespace GameSettingsParser.ViewModels
             }
         }
 
+        public ExportSignificance ExportSignificance
+        {
+            get => MarkupTypeModel.ExportSignificance;
+            set
+            {
+                MarkupTypeModel.ExportSignificance = value;
+                RaisePropertyChanged();
+                RaisePropertyChanged(nameof(CanBeExportRowKey));
+            }
+        }
+        
+        public IEnumerable<ExportSignificance> ExportSignificanceValues => Enum.GetValues<ExportSignificance>();
+
+        public bool IsExportRowKey
+        {
+            get => MarkupTypeModel.IsExportRowKey;
+            set
+            {
+                MarkupTypeModel.IsExportRowKey = value;
+                RaisePropertyChanged();
+            }
+        }
+        
+        public int ExportPropertyOrder
+        {
+            get => MarkupTypeModel.ExportPropertyOrder;
+            set
+            {
+                MarkupTypeModel.ExportPropertyOrder = value;
+                RaisePropertyChanged();
+            }
+        }
+        
         public ObservableCollection<ColorOption> ColorOptions { get; }
         public ObservableCollection<string> PositionedRelativeToOptions { get; init; }
         public ObservableCollection<string> SearchAreaOptions { get; init; }
@@ -106,6 +142,10 @@ namespace GameSettingsParser.ViewModels
         public bool HasPositionedRelativeToOptions => PositionedRelativeToOptions.Count > 0;
         public bool HasSearchAreaOptions => SearchAreaOptions.Count > 0 && !IsSearchArea && IsDynamic;
         public bool IsPositionedRelativeToOther => !string.IsNullOrEmpty(PositionedRelativeTo);
+
+        public bool CanSetExportSignificance => !IsSearchArea;
+        public bool CanBeExportRowKey => ExportSignificance != ExportSignificance.Section && !IsSearchArea;
+        public bool CanHaveExportPropertyOrder => ExportSignificance == ExportSignificance.ItemProperty && !IsSearchArea;
 
         public MarkupTypeModel MarkupTypeModel { get; }
 
