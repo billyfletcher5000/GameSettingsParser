@@ -1,0 +1,267 @@
+{
+  "$id": "1",
+  "Name": "Cyberpunk_Test_Profile",
+  "MarkupTypes": [
+    {
+      "$id": "2",
+      "Name": "Setting",
+      "Color": "#FF00FFFF",
+      "IsDynamic": true,
+      "PositionedRelativeTo": "",
+      "IsPositionedRelativeToOther": false,
+      "RelativePositioningType": 1,
+      "IsSearchArea": false,
+      "SearchArea": "SettingSearchArea",
+      "HasSearchArea": true,
+      "ExportSignificance": 1,
+      "ExportPropertyOrder": 0,
+      "IsExportRowKey": true,
+      "HTMLExportTableWidth": "10%"
+    },
+    {
+      "$id": "3",
+      "Name": "SettingSearchArea",
+      "Color": "#FFF0F8FF",
+      "IsDynamic": false,
+      "PositionedRelativeTo": "",
+      "IsPositionedRelativeToOther": false,
+      "RelativePositioningType": 1,
+      "IsSearchArea": true,
+      "SearchArea": "",
+      "HasSearchArea": false,
+      "ExportSignificance": 1,
+      "ExportPropertyOrder": 0,
+      "IsExportRowKey": false,
+      "HTMLExportTableWidth": ""
+    },
+    {
+      "$id": "4",
+      "Name": "Value(s)",
+      "Color": "#FF5F9EA0",
+      "IsDynamic": false,
+      "PositionedRelativeTo": "Setting",
+      "IsPositionedRelativeToOther": true,
+      "RelativePositioningType": 1,
+      "IsSearchArea": false,
+      "SearchArea": "",
+      "HasSearchArea": false,
+      "ExportSignificance": 1,
+      "ExportPropertyOrder": 1,
+      "IsExportRowKey": false,
+      "HTMLExportTableWidth": "25%"
+    },
+    {
+      "$id": "5",
+      "Name": "Description",
+      "Color": "#FF8A2BE2",
+      "IsDynamic": false,
+      "PositionedRelativeTo": "",
+      "IsPositionedRelativeToOther": false,
+      "RelativePositioningType": 1,
+      "IsSearchArea": false,
+      "SearchArea": "",
+      "HasSearchArea": false,
+      "ExportSignificance": 1,
+      "ExportPropertyOrder": 2,
+      "IsExportRowKey": false,
+      "HTMLExportTableWidth": "55%"
+    },
+    {
+      "$id": "6",
+      "Name": "Section",
+      "Color": "#FF7FFF00",
+      "IsDynamic": true,
+      "PositionedRelativeTo": "",
+      "IsPositionedRelativeToOther": false,
+      "RelativePositioningType": 1,
+      "IsSearchArea": false,
+      "SearchArea": "SectionSearchArea",
+      "HasSearchArea": true,
+      "ExportSignificance": 0,
+      "ExportPropertyOrder": 0,
+      "IsExportRowKey": false,
+      "HTMLExportTableWidth": ""
+    },
+    {
+      "$id": "7",
+      "Name": "SectionSearchArea",
+      "Color": "#FFFFFFF0",
+      "IsDynamic": false,
+      "PositionedRelativeTo": "",
+      "IsPositionedRelativeToOther": false,
+      "RelativePositioningType": 1,
+      "IsSearchArea": true,
+      "SearchArea": "",
+      "HasSearchArea": false,
+      "ExportSignificance": 1,
+      "ExportPropertyOrder": 0,
+      "IsExportRowKey": false,
+      "HTMLExportTableWidth": ""
+    }
+  ],
+  "Images": [
+    {
+      "$id": "8",
+      "Name": "20260410162305_1",
+      "Path": "C:\\Dev\\GameSettingsParser\\TestData\\export_test\\images\\20260410162305_1.jpg",
+      "RelativePath": "images\\20260410162305_1.jpg"
+    },
+    {
+      "$id": "9",
+      "Name": "20260410162306_1",
+      "Path": "C:\\Dev\\GameSettingsParser\\TestData\\export_test\\images\\20260410162306_1.jpg",
+      "RelativePath": "images\\20260410162306_1.jpg"
+    },
+    {
+      "$id": "10",
+      "Name": "20260410162310_1",
+      "Path": "C:\\Dev\\GameSettingsParser\\TestData\\export_test\\images\\20260410162310_1.jpg",
+      "RelativePath": "images\\20260410162310_1.jpg"
+    },
+    {
+      "$id": "11",
+      "Name": "20260410162312_1",
+      "Path": "C:\\Dev\\GameSettingsParser\\TestData\\export_test\\images\\20260410162312_1.jpg",
+      "RelativePath": "images\\20260410162312_1.jpg"
+    },
+    {
+      "$id": "12",
+      "Name": "20260410162330_1",
+      "Path": "C:\\Dev\\GameSettingsParser\\TestData\\export_test\\images\\20260410162330_1.jpg",
+      "RelativePath": "images\\20260410162330_1.jpg"
+    }
+  ],
+  "ImageInstances": [
+    {
+      "$id": "13",
+      "Image": {
+        "$ref": "8"
+      },
+      "MarkupInstances": [
+        {
+          "$id": "14",
+          "Type": {
+            "$ref": "2"
+          },
+          "Rect": "494.99927637609136,242.3213854985769,69.03372087413771,26.05046070722176"
+        },
+        {
+          "$id": "15",
+          "Type": {
+            "$ref": "3"
+          },
+          "Rect": "480.67152298711943,171.98514158907813,440.252785952048,669.4968401755993"
+        },
+        {
+          "$id": "16",
+          "Type": {
+            "$ref": "4"
+          },
+          "Rect": "1001.6807371315549,237.11129335713252,303.4878672391335,35.16812195474938"
+        },
+        {
+          "$id": "17",
+          "Type": {
+            "$ref": "5"
+          },
+          "Rect": "1471.8915528969076,166.77504944763376,442.85783202277,436.34521684596456"
+        },
+        {
+          "$id": "18",
+          "Type": {
+            "$ref": "6"
+          },
+          "Rect": "353.0242655217328,36.52274591152492,74.24381301558202,27.35298374258285"
+        },
+        {
+          "$id": "19",
+          "Type": {
+            "$ref": "7"
+          },
+          "Rect": "343.90660427420516,30.010130734719475,1230.8842684162285,40.37821409619374"
+        }
+      ],
+      "HasChanges": false
+    },
+    {
+      "$id": "20",
+      "Image": {
+        "$ref": "9"
+      },
+      "MarkupInstances": [
+        {
+          "$id": "21",
+          "Type": {
+            "$ref": "2"
+          },
+          "Rect": "492.39423030536926,243.62390853393794,76.84885908630446,27.352983742582865"
+        }
+      ],
+      "HasChanges": false
+    },
+    {
+      "$id": "22",
+      "Image": {
+        "$ref": "10"
+      },
+      "MarkupInstances": [
+        {
+          "$id": "23",
+          "Type": {
+            "$ref": "2"
+          },
+          "Rect": "494.9992763760915,300.9349220898258,229.24405422355147,27.35298374258292"
+        }
+      ],
+      "HasChanges": false
+    },
+    {
+      "$id": "24",
+      "Image": {
+        "$ref": "11"
+      },
+      "MarkupInstances": [
+        {
+          "$id": "25",
+          "Type": {
+            "$ref": "2"
+          },
+          "Rect": "496.30179941145246,427.27965651985147,134.15987264219217,26.050460707221703"
+        },
+        {
+          "$id": "26",
+          "Type": {
+            "$ref": "6"
+          },
+          "Rect": "350.41921945101063,35.220222876163824,78.15138212166528,29.95802981330504"
+        }
+      ],
+      "HasChanges": false
+    },
+    {
+      "$id": "27",
+      "Image": {
+        "$ref": "12"
+      },
+      "MarkupInstances": [
+        {
+          "$id": "28",
+          "Type": {
+            "$ref": "2"
+          },
+          "Rect": "493.69675334073037,300.9349220898258,171.93304066766365,26.050460707221816"
+        },
+        {
+          "$id": "29",
+          "Type": {
+            "$ref": "6"
+          },
+          "Rect": "566.6380433209513,35.220222876163824,114.62202711177576,29.95802981330504"
+        }
+      ],
+      "HasChanges": false
+    }
+  ],
+  "WordGapThreshold": 8,
+  "MinimumDynamicComparisonConfidence": 0.0
+}
