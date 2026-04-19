@@ -25,7 +25,8 @@ namespace GameSettingsParser.Services.DataExport
         
         public void ExportToFile(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath)
         {
-            var export = ExportToHTMLString(imageAnalysisResult, parsingProfile, false);
+            var result = MessageBox.Show("Copy images to same folder as HTML file?", "Copy Images", MessageBoxButton.YesNo);
+            var export = ExportToHTMLString(imageAnalysisResult, parsingProfile, false, result == MessageBoxResult.Yes, outputPath);
             var output = $"{CreateHTMLHeader()}<body>\n\n{export}\n\n\t</body>\n</html>";
             File.WriteAllText(outputPath, output);
             File.Copy(StylesheetPath, Path.Combine(Path.GetDirectoryName(outputPath)!, Path.GetFileName(StylesheetPath)), true);
@@ -42,8 +43,10 @@ namespace GameSettingsParser.Services.DataExport
                    "\n\t</head>\n\t";
         }
 
-        private string ExportToHTMLString(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, bool screenshotsAsBase64)
+        private string ExportToHTMLString(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, bool screenshotsAsBase64, bool copyScreenshots = false, string outputPath = "")
         {
+            var screenshotsFolder = !string.IsNullOrEmpty(outputPath) ? Path.Combine(Path.GetDirectoryName(outputPath)!, "screenshots") : string.Empty;
+            
             StringBuilder sb = new();
 
             int indent = 0;
@@ -106,7 +109,15 @@ namespace GameSettingsParser.Services.DataExport
                                 }
                                 else
                                 {
-                                    var relativePath = Path.GetFileName(screenshotPath);
+                                    var finalPath = screenshotPath;
+                                    if (copyScreenshots && !string.IsNullOrEmpty(screenshotsFolder))
+                                    {
+                                        finalPath = Path.Combine(Path.Combine(screenshotsFolder, section.Name.ToLower()), Path.GetFileName(screenshotPath));
+                                        Directory.CreateDirectory(Path.GetDirectoryName(finalPath)!);
+                                        File.Copy(screenshotPath, finalPath, true);
+                                    }
+
+                                    var relativePath = Path.GetRelativePath(Path.GetDirectoryName(outputPath)!, finalPath);
                                     sb.AppendLine($"{new string('\t', indent)}<a href=\"{relativePath}\"><img src=\"{relativePath}\" width=\"96\" height=\"54\" /></a>\n");
                                 }
                             }
