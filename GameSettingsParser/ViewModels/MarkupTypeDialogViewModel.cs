@@ -67,6 +67,7 @@ namespace GameSettingsParser.ViewModels
                 RaisePropertyChanged(nameof(CanSetExportSignificance));
                 RaisePropertyChanged(nameof(CanBeExportRowKey));
                 RaisePropertyChanged(nameof(CanHaveExportPropertyOrder));
+                RaisePropertyChanged(nameof(CanHaveHTMLExportTableWidth));
             }
         }
 
@@ -110,6 +111,7 @@ namespace GameSettingsParser.ViewModels
                 MarkupTypeModel.ExportSignificance = value;
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(CanBeExportRowKey));
+                RaisePropertyChanged(nameof(CanHaveHTMLExportTableWidth));
             }
         }
         
@@ -134,6 +136,16 @@ namespace GameSettingsParser.ViewModels
                 RaisePropertyChanged();
             }
         }
+
+        public string HTMLExportTableWidth
+        {
+            get => MarkupTypeModel.HTMLExportTableWidth;
+            set
+            {
+                MarkupTypeModel.HTMLExportTableWidth = value;
+                RaisePropertyChanged();
+            }
+        }
         
         public ObservableCollection<ColorOption> ColorOptions { get; }
         public ObservableCollection<string> PositionedRelativeToOptions { get; init; }
@@ -146,6 +158,7 @@ namespace GameSettingsParser.ViewModels
         public bool CanSetExportSignificance => !IsSearchArea;
         public bool CanBeExportRowKey => ExportSignificance != ExportSignificance.Section && !IsSearchArea;
         public bool CanHaveExportPropertyOrder => ExportSignificance == ExportSignificance.ItemProperty && !IsSearchArea;
+        public bool CanHaveHTMLExportTableWidth => ExportSignificance != ExportSignificance.Section && !IsSearchArea;
 
         public MarkupTypeModel MarkupTypeModel { get; }
 

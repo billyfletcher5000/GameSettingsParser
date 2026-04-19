@@ -49,6 +49,8 @@ namespace GameSettingsParser.Model
         public int ExportPropertyOrder { get; set; } = 0;
         
         public bool IsExportRowKey { get; set; } = false;
+        
+        public string HTMLExportTableWidth { get; set; } = string.Empty;
     
         public override string ToString() => Name;
 

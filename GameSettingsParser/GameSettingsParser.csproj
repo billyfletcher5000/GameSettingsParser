@@ -51,6 +51,9 @@
       <None Update="onnx-models\google-vit-base-patch16-224\config.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="html_export\styles.css">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
     <ItemGroup>

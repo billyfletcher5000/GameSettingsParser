@@ -9,6 +9,8 @@ namespace GameSettingsParser.Services.DataExport
 {
     public class HTMLDataExportService : IDataExportService
     {
+        private const string StylesheetPath = "html_export/styles.css";
+        
         public bool SupportsExportToFile => true;
         public bool SupportsExportToClipboard => true;
         
@@ -24,8 +26,20 @@ namespace GameSettingsParser.Services.DataExport
         public void ExportToFile(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath)
         {
             var export = ExportToHTMLString(imageAnalysisResult, parsingProfile, false);
-            var output = $"<html>\n\t<head>\n\t\t<title>Game Settings Parser Export</title>\n\t</head>\n\t<body>\n\n{export}\n\n\t</body>\n</html>";
+            var output = $"{CreateHTMLHeader()}<body>\n\n{export}\n\n\t</body>\n</html>";
             File.WriteAllText(outputPath, output);
+            File.Copy(StylesheetPath, Path.Combine(Path.GetDirectoryName(outputPath)!, Path.GetFileName(StylesheetPath)), true);
+        }
+
+        private string CreateHTMLHeader()
+        {
+            return "<!DOCTYPE html>\n" +
+                   "<html>\n" +
+                   "\n\t<head>" +
+                   "\n\t\t<meta charset=\"utf-8\">" +
+                   "\n\t\t<link rel=\"stylesheet\" href=\"styles.css\">" +
+                   "\n\t\t<title>Game Settings Parser Export</title>" +
+                   "\n\t</head>\n\t";
         }
 
         private string ExportToHTMLString(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, bool screenshotsAsBase64)
@@ -42,16 +56,28 @@ namespace GameSettingsParser.Services.DataExport
                 sb.AppendLine("<table>"); 
                 indent++;
                 
+                
+                sb.AppendLine($"{new string('\t', indent)}<thead>"); 
+                indent++;
                 sb.AppendLine($"{new string('\t', indent)}<tr>"); 
                 indent++;
                 foreach (var column in columns)
                 {
-                    sb.AppendLine($"{new string('\t', indent)}<th>{column.ColumnName}</th>");
+                    var markupType = parsingProfile.MarkupTypes.FirstOrDefault(item => item.Name.Equals(column.ColumnName));
+                    var columnWidth = markupType != null ? markupType.HTMLExportTableWidth : string.Empty;
+                    if(!string.IsNullOrEmpty(columnWidth))
+                        sb.AppendLine($"{new string('\t', indent)}<th width=\"{columnWidth}\">{column.ColumnName}</th>");
+                    else
+                        sb.AppendLine($"{new string('\t', indent)}<th>{column.ColumnName}</th>");
                 } 
                 --indent;
+                sb.AppendLine($"{new string('\t', indent)}</tr>");
+                --indent;
+                sb.AppendLine($"{new string('\t', indent)}</thead>"); 
                 
-                sb.AppendLine($"{new string('\t', indent)}</tr>"); 
                 
+                sb.AppendLine($"{new string('\t', indent)}<tbody>"); 
+                indent++;
                 foreach (var row in section.Settings.Rows.Cast<DataRow>())
                 {
                     sb.AppendLine($"{new string('\t', indent)}<tr>");
@@ -61,6 +87,7 @@ namespace GameSettingsParser.Services.DataExport
                         string? cellValue = row[column] as string;
                         if (cellValue == null)
                             continue;
+
                         
                         sb.AppendLine($"{new string('\t', indent)}<td>");
                         indent++;
@@ -92,8 +119,10 @@ namespace GameSettingsParser.Services.DataExport
                         sb.AppendLine($"{new string('\t', indent)}</td>");
                     }
                     --indent;
-                    sb.AppendLine($"{new string('\t', indent)}<tr>");
+                    sb.AppendLine($"{new string('\t', indent)}</tr>");
                 }
+                --indent;
+                sb.AppendLine($"{new string('\t', indent)}</tbody>"); 
                 
                 --indent;
                 sb.AppendLine("</table>");
