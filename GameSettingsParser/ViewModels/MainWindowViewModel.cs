@@ -107,6 +107,7 @@ namespace GameSettingsParser.ViewModels
         public ICommand FileOpenCommand { get; }
         public ICommand FileSaveCommand { get; }
         public ICommand FileSaveAsCommand { get; }
+        public ICommand FileExportCommand { get; }
         public ICommand FileExitCommand { get; }
 
         public ICommand AddImageCommand { get; }
@@ -143,6 +144,7 @@ namespace GameSettingsParser.ViewModels
             FileOpenCommand = new DelegateCommand(OnFileOpen);
             FileSaveCommand = new DelegateCommand(OnFileSave);
             FileSaveAsCommand = new DelegateCommand(OnFileSaveAs);
+            FileExportCommand = new DelegateCommand(ExportProject);
             FileExitCommand = new DelegateCommand(OnFileExit);
             
             AddImageCommand = new DelegateCommand(OnAddImage);
@@ -507,6 +509,23 @@ namespace GameSettingsParser.ViewModels
             var imagePaths = openFileDialog.FileNames;
 
             return _imageAnalysisService.Analyse(_parsingProfile, imagePaths);
+        }
+
+        private void ExportProject()
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Title = "Save Parsing Profile",
+                Filter = "Parsing Profile Files (*.json)|*.json",
+                DefaultExt = ".json",
+                FileName = "Parsing Profile"
+            };
+            
+            var result = saveFileDialog.ShowDialog();
+            if (result is null or false)
+                return;
+            
+            ParsingProfileModel.ExportToPath(_parsingProfile, saveFileDialog.FileName, _currentProfileFilePath);
         }
         
         private void OnMarkupInstancesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs args)

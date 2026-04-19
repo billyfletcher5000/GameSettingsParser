@@ -172,7 +172,10 @@ namespace GameSettingsParser.Model
                     });
                 
                     if(serializer.Deserialize(reader, typeof(ParsingProfileModel)) is ParsingProfileModel loadedProfile)
+                    {
+                        UpdateImagePathsWithProfilePath(loadedProfile, path);
                         return loadedProfile;
+                    }
                 }
             }
             catch (Exception e)
@@ -181,6 +184,51 @@ namespace GameSettingsParser.Model
             }
 
             return null;
+        }
+        
+        public static void UpdateImagePathsWithProfilePath(ParsingProfileModel profile, string profilePath)
+        {
+            var profileFolder = Path.GetDirectoryName(profilePath);
+            if (profileFolder == null)
+                return;
+            
+            foreach (var image in profile.Images)
+            {
+                if (!string.IsNullOrEmpty(image.RelativePath))
+                    image.Path = Path.Combine(profileFolder, image.RelativePath);
+            
+                image.RelativePath = Path.GetRelativePath(profileFolder, image.Path);
+            }
+        }
+
+        public static void ExportToPath(ParsingProfileModel profile, string path, string originalProfilePath)
+        {
+            UpdateImagePathsWithProfilePath(profile, originalProfilePath);
+            
+            var profileFolder = Path.GetDirectoryName(path);
+            if (profileFolder == null)
+                return;
+            
+            var imagesFolder = Path.Combine(profileFolder, "images");
+            
+            Directory.CreateDirectory(imagesFolder);
+            foreach (var imageModel in profile.Images)
+            {
+                var imagePath = imageModel.Path;
+                if (!File.Exists(imagePath))
+                {
+                    imagePath = Path.Combine(originalProfilePath, imageModel.RelativePath);
+                    if (!File.Exists(imagePath))
+                        continue;
+                }
+
+                var copiedFilename = Path.GetFileName(imageModel.RelativePath);
+                var destinationPath = Path.Combine(imagesFolder, copiedFilename);
+                File.Copy(imagePath, destinationPath);
+                imageModel.RelativePath = Path.GetRelativePath(profileFolder, destinationPath);
+            }
+            
+            Save(profile, path);
         }
     }
 }
