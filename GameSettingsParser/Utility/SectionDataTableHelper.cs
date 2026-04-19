@@ -151,14 +151,24 @@ namespace GameSettingsParser.Utility
 
         private static void SetCellValue(DataRow row, DataColumn column, List<string> values)
         {
-            string previousValue;
+            // TODO: Add configuration option, possibly per markup type, for whether to ignore duplicates
+            var newValue = string.Join(ListSeparator, values);
+            string output;
             if (row[column] == DBNull.Value)
-                previousValue = string.Empty;
+            {
+                output = string.Empty;
+            }
             else
-                previousValue = $"{row[column] as string}{ListSeparator}";
-                        
-            previousValue += string.Join(ListSeparator, values);
-            row[column] = previousValue;
+            {
+                var previousValueString = row[column] as string;
+                if (previousValueString == null || previousValueString.Contains(newValue))
+                    return;
+                
+                output = $"{row[column] as string}{ListSeparator}";
+            }
+
+            output += newValue;
+            row[column] = output;
         }
     }
 }
