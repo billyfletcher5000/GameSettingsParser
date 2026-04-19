@@ -50,6 +50,11 @@ namespace GameSettingsParser.Controls
                 UpdateCanvasTransform();
                 CreateInitialDisplays();
             }
+            else
+            {
+                MainImage.Source = null;
+                ClearMarkupDisplays();
+            }
         }
 
         public ImageInstanceModel ImageInstance

@@ -1,11 +1,9 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Drawing;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
-using System.Xml.Linq;
 using Microsoft.Win32;
 using GameSettingsParser.Model;
 using GameSettingsParser.Services.DataExport;
@@ -14,15 +12,22 @@ using GameSettingsParser.Services.Validation;
 using GameSettingsParser.Settings;
 using GameSettingsParser.Utility;
 using GameSettingsParser.Views;
-using Tesseract;
 using Path = System.IO.Path;
-using Rect = System.Windows.Rect;
 
 namespace GameSettingsParser.ViewModels
 {
     public class MainWindowViewModel : BindableBase
     {
-        private readonly ParsingProfileModel _parsingProfile;
+        private ParsingProfileModel _parsingProfile;
+        
+        private const string ApplicationName = "Game Settings Parser";
+        private const string WindowTitleFormat = "{0} - {1}";
+        private string? _windowTitle;
+        public string? WindowTitle
+        {
+            get => _windowTitle;
+            set => SetProperty(ref _windowTitle, value);
+        }
         
         public ObservableCollection<ImageModel> Images => _parsingProfile.Images;
         
@@ -95,6 +100,14 @@ namespace GameSettingsParser.ViewModels
                 RaisePropertyChanged();
             }
         }
+        
+        public ICommand ClosingWindowCommand { get; }
+        
+        public ICommand FileNewCommand { get; }
+        public ICommand FileOpenCommand { get; }
+        public ICommand FileSaveCommand { get; }
+        public ICommand FileSaveAsCommand { get; }
+        public ICommand FileExitCommand { get; }
 
         public ICommand AddImageCommand { get; }
         public ICommand RemoveImageCommand { get; }
@@ -111,6 +124,8 @@ namespace GameSettingsParser.ViewModels
         public ICommand ExportToClipboardCommand { get; }
         
         public ICommand TestButtonCommand { get; }
+
+        private string _currentProfileFilePath = string.Empty;
         
         private readonly IImageAnalysisService _imageAnalysisService;
         private readonly IDataExportService _dataExportService;
@@ -121,6 +136,14 @@ namespace GameSettingsParser.ViewModels
             _imageAnalysisService = imageAnalysisService;
             _dataExportService = dataExportService;
             _validationService = validationService;
+            
+            ClosingWindowCommand = new DelegateCommand(OnCloseWindow);
+            
+            FileNewCommand = new DelegateCommand(OnFileNew);
+            FileOpenCommand = new DelegateCommand(OnFileOpen);
+            FileSaveCommand = new DelegateCommand(OnFileSave);
+            FileSaveAsCommand = new DelegateCommand(OnFileSaveAs);
+            FileExitCommand = new DelegateCommand(OnFileExit);
             
             AddImageCommand = new DelegateCommand(OnAddImage);
             RemoveImageCommand = new DelegateCommand(OnRemoveImage, () => HasSelectedImage);
@@ -138,14 +161,145 @@ namespace GameSettingsParser.ViewModels
 
             // Debugging
             TestButtonCommand = new DelegateCommand(TestButton);
+
+            var lastParsingProfilePath = UserSettings.Instance.LastParsingProfilePath;
+            if (UserSettings.Instance.AutoOpenLastParsingProfile &&
+                lastParsingProfilePath != null && File.Exists(lastParsingProfilePath))
+            {
+                var profile = ParsingProfileModel.Load(lastParsingProfilePath);
+                if (profile != null)
+                {
+                    SetNewParsingProfile(profile);
+                    _currentProfileFilePath = lastParsingProfilePath;
+                    _parsingProfile.HasChanges = false;
+                    
+                    if(UserSettings.Instance.SelectedImageModel != null && Images.Any(image => image.Name == UserSettings.Instance.SelectedImageModel))
+                        SelectedImage = Images.First(image => image.Name == UserSettings.Instance.SelectedImageModel);
+                    
+                    if(UserSettings.Instance.SelectedMarkupType != null && MarkupTypes.Any(type => type.Name == UserSettings.Instance.SelectedMarkupType))
+                        SelectedMarkupType = MarkupTypes.First(type => type.Name == UserSettings.Instance.SelectedMarkupType);
+                }
+            }
             
-            _parsingProfile = UserSettings.Instance.ParsingProfile;
-            SelectedImage = !string.IsNullOrEmpty(UserSettings.Instance.SelectedImageModel) 
-                ? Images.FirstOrDefault(image => image.Name == UserSettings.Instance.SelectedImageModel) 
-                : Images.FirstOrDefault();
-            SelectedMarkupType = !string.IsNullOrEmpty(UserSettings.Instance.SelectedMarkupType) 
-                ? MarkupTypes.FirstOrDefault(type => type.Name == UserSettings.Instance.SelectedMarkupType) 
-                : MarkupTypes.FirstOrDefault();
+            if (_parsingProfile == null)
+            {
+                var profile = new ParsingProfileModel();
+                SetNewParsingProfile(profile);
+                _parsingProfile.HasChanges = true;
+            }
+            
+            ChangeTracker.OnChangeNotified += OnChangeTrackerChange;
+            UpdateWindowTitle();
+        }
+
+        public void OnFileNew()
+        {
+            if (_parsingProfile.HasChanges)
+            {
+                var msgBoxResult = MessageBox.Show("You have unsaved changes. Do you want to save them?", "Unsaved Changes", MessageBoxButton.YesNoCancel);
+                if (msgBoxResult == MessageBoxResult.Cancel)
+                    return;
+
+                if (msgBoxResult == MessageBoxResult.Yes)
+                {
+                    OnFileSave();
+                }
+            }
+            
+            SetNewParsingProfile(new ParsingProfileModel());
+            _parsingProfile.HasChanges = true;
+            _currentProfileFilePath = string.Empty;
+            UpdateWindowTitle();
+        }
+        
+        public void OnFileOpen()
+        {
+            var openFileDialog = new OpenFileDialog
+            {
+                Title = "Open Parsing Profile",
+                Filter = "Parsing Profile Files (*.json)|*.json",
+                Multiselect = false
+            };
+            
+            var result = openFileDialog.ShowDialog();
+            if (result != true) 
+                return;
+            
+            var profile = ParsingProfileModel.Load(openFileDialog.FileName);
+            if (profile == null)
+                return;
+            
+            SetNewParsingProfile(profile);
+            _parsingProfile.HasChanges = false;
+            _currentProfileFilePath = openFileDialog.FileName;
+            UpdateWindowTitle();
+        }
+
+        [MemberNotNull(nameof(_parsingProfile))]
+        private void SetNewParsingProfile(ParsingProfileModel profile)
+        {
+            _parsingProfile = profile;
+            
+            SelectedImage = _parsingProfile.Images.FirstOrDefault();
+            SelectedMarkupType = _parsingProfile.MarkupTypes.FirstOrDefault();
+            WordGapThreshold = _parsingProfile.WordGapThreshold;
+            MinimumDynamicComparisonConfidence = _parsingProfile.MinimumDynamicComparisonConfidence;
+            RaiseProfilePropertiesChanged();
+            RaiseCommandsCanExecuteChanged();
+        }
+
+        public void OnFileSave()
+        {
+            if (_currentProfileFilePath != null)
+            {
+                ParsingProfileModel.Save(_parsingProfile, _currentProfileFilePath);
+                _parsingProfile.HasChanges = false;
+                UpdateWindowTitle();
+            }
+            else
+            {
+                OnFileSaveAs();
+            }
+        }
+
+        public void OnFileSaveAs()
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Title = "Save Parsing Profile",
+                Filter = "Parsing Profile Files (*.json)|*.json",
+                DefaultExt = ".json",
+                FileName = "Parsing Profile"
+            };
+            
+            var result = saveFileDialog.ShowDialog();
+            if (result != true)
+                return;
+            
+            _currentProfileFilePath = saveFileDialog.FileName;
+            _parsingProfile.Name = Path.GetFileNameWithoutExtension(_currentProfileFilePath);
+            ParsingProfileModel.Save(_parsingProfile, _currentProfileFilePath);
+            _parsingProfile.HasChanges = false;
+            UpdateWindowTitle();
+        }
+
+        public void OnFileExit()
+        {
+            Application.Current.Shutdown();
+        }
+
+        private void OnChangeTrackerChange(ChangeTracker.ChangeType changeType)
+        {
+            if(changeType == ChangeTracker.ChangeType.Parsing)
+                UpdateWindowTitle();
+        }
+
+        private void UpdateWindowTitle()
+        {
+            var title = string.Format(WindowTitleFormat, ApplicationName, _parsingProfile.Name);
+            if (_parsingProfile.HasChanges)
+                title += "*";
+            WindowTitle = title;
         }
 
         private bool CanGatherAndExport()
@@ -156,9 +310,14 @@ namespace GameSettingsParser.ViewModels
                    && _parsingProfile.ImageInstances.Any(instance => instance.MarkupInstances.Count != 0);
         }
 
+        public void OnCloseWindow()
+        {
+            Save();
+        }
+        
         public void Save()
         {
-            UserSettings.Instance.ParsingProfile = _parsingProfile;
+            UserSettings.Instance.LastParsingProfilePath = !string.IsNullOrEmpty(_currentProfileFilePath) ? _currentProfileFilePath : string.Empty;
             UserSettings.Instance.SelectedImageModel = _selectedImage != null ? _selectedImage.Name : string.Empty;
             UserSettings.Instance.SelectedMarkupType = _selectedMarkupType != null ? _selectedMarkupType.Name : string.Empty;
         }
@@ -366,6 +525,16 @@ namespace GameSettingsParser.ViewModels
             ((DelegateCommand)TestButtonCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)ExportToFileCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)ExportToClipboardCommand).RaiseCanExecuteChanged();
+        }
+        
+        private void RaiseProfilePropertiesChanged()
+        {
+            RaisePropertyChanged(nameof(WordGapThreshold));
+            RaisePropertyChanged(nameof(MinimumDynamicComparisonConfidence));
+            RaisePropertyChanged(nameof(Images));
+            RaisePropertyChanged(nameof(SelectedImage));
+            RaisePropertyChanged(nameof(MarkupTypes));
+            RaisePropertyChanged(nameof(SelectedMarkupType));
         }
     }
 }

@@ -37,7 +37,6 @@ public partial class App : PrismApplication
 
     protected override void OnExit(ExitEventArgs e)
     {
-        Container.Resolve<MainWindowViewModel>().Save();
         UserSettings.Save(SettingsPathHelper.GetSettingsFilePath());
         base.OnExit(e);
     }

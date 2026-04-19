@@ -10,14 +10,16 @@ namespace GameSettingsParser.Settings;
 public class UserSettings
 {
     public static UserSettings Instance { get; private set; } = new();
-
-    public ParsingProfileModel ParsingProfile { get; set; } = new();
+    
+    public bool AutoOpenLastParsingProfile { get; set; } = true;
+    
+    public string LastParsingProfilePath { get; set; } = "";
     
     public string SelectedImageModel { get; set; } = "";
     
     public string SelectedMarkupType { get; set; } = "";
     
-    public ObservableCollection<Type> TextComparisonServices { get; init; } = [typeof(ColorSimilarityTextComparisonService)];
+    public ObservableCollection<Type> TextComparisonServices { get; } = [typeof(ColorSimilarityTextComparisonService)];
 
     public struct WindowSettings
     {
