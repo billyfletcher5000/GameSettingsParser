@@ -457,6 +457,9 @@ namespace GameSettingsParser.ViewModels
         {
             var analysisResult = GatherExportResult();
 
+            if (analysisResult is null)
+                return;
+
             var saveFileDialog = new SaveFileDialog()
             {
                 Title = "Save Exported Data",
@@ -468,8 +471,7 @@ namespace GameSettingsParser.ViewModels
             if (saveFileDialog.ShowDialog() == false)
                 return;
             
-            if (analysisResult != null)
-                _dataExportService.ExportToFile(analysisResult, _parsingProfile, saveFileDialog.FileName);
+            _dataExportService.ExportToFile(analysisResult, _parsingProfile, saveFileDialog.FileName);
         }
 
         private void ExportToClipboard()
@@ -499,7 +501,7 @@ namespace GameSettingsParser.ViewModels
             
             var dialogResult = openFileDialog.ShowDialog();
 
-            if (dialogResult == false)
+            if (dialogResult is null or false)
                 return null;
             
             var imagePaths = openFileDialog.FileNames;
