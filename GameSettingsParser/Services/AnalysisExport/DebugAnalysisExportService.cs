@@ -3,9 +3,9 @@ using System.Text;
 using System.Windows;
 using GameSettingsParser.Model;
 
-namespace GameSettingsParser.Services.DataExport
+namespace GameSettingsParser.Services.AnalysisExport
 {
-    public class DebugDataExportService : IDataExportService
+    public class DebugAnalysisExportService : IAnalysisExportService
     {
         public bool SupportsExportToFile => true;
         public bool SupportsExportToClipboard => true;

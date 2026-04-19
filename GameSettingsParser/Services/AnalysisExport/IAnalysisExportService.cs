@@ -1,8 +1,8 @@
 ﻿using GameSettingsParser.Model;
 
-namespace GameSettingsParser.Services.DataExport
+namespace GameSettingsParser.Services.AnalysisExport
 {
-    public interface IDataExportService
+    public interface IAnalysisExportService
     {
         public bool SupportsExportToFile { get; }
         public bool SupportsExportToClipboard { get; }

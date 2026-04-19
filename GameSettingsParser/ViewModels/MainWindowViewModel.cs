@@ -6,7 +6,7 @@ using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
 using GameSettingsParser.Model;
-using GameSettingsParser.Services.DataExport;
+using GameSettingsParser.Services.AnalysisExport;
 using GameSettingsParser.Services.ImageAnalysis;
 using GameSettingsParser.Services.Validation;
 using GameSettingsParser.Settings;
@@ -120,21 +120,21 @@ namespace GameSettingsParser.ViewModels
         public ICommand ClearTypeInstancesCommand { get; }
         public ICommand ClearAllInstancesCommand { get; }
         
-        public ICommand ExportToFileCommand { get; }
-        public ICommand ExportToClipboardCommand { get; }
+        public ICommand ParseToFileCommand { get; }
+        public ICommand ParseToClipboardCommand { get; }
         
         public ICommand TestButtonCommand { get; }
 
         private string _currentProfileFilePath = string.Empty;
         
         private readonly IImageAnalysisService _imageAnalysisService;
-        private readonly IDataExportService _dataExportService;
+        private readonly IAnalysisExportService _analysisExportService;
         private readonly IProfileValidationService _validationService;
 
-        public MainWindowViewModel(IImageAnalysisService imageAnalysisService, IDataExportService dataExportService, IProfileValidationService validationService)
+        public MainWindowViewModel(IImageAnalysisService imageAnalysisService, IAnalysisExportService analysisExportService, IProfileValidationService validationService)
         {
             _imageAnalysisService = imageAnalysisService;
-            _dataExportService = dataExportService;
+            _analysisExportService = analysisExportService;
             _validationService = validationService;
             
             ClosingWindowCommand = new DelegateCommand(OnCloseWindow);
@@ -156,8 +156,8 @@ namespace GameSettingsParser.ViewModels
             ClearTypeInstancesCommand = new DelegateCommand(ClearCurrentTypeMarkupInstances, () => HasSelectedImage && HasSelectedMarkupType && SelectedImageInstance!.MarkupInstances.Count(instance => instance.Type == SelectedMarkupType) > 0);
             ClearAllInstancesCommand = new DelegateCommand(ClearAllMarkupInstances, () => HasSelectedImage && HasSelectedMarkupType && SelectedImageInstance!.MarkupInstances.Count > 0);
             
-            ExportToFileCommand = new DelegateCommand(ExportToFile, () => CanGatherAndExport() && _dataExportService.SupportsExportToFile);
-            ExportToClipboardCommand = new DelegateCommand(ExportToClipboard, () => CanGatherAndExport() && _dataExportService.SupportsExportToClipboard);
+            ParseToFileCommand = new DelegateCommand(ParseToFile, () => CanGatherAndExport() && _analysisExportService.SupportsExportToFile);
+            ParseToClipboardCommand = new DelegateCommand(ParseToClipboard, () => CanGatherAndExport() && _analysisExportService.SupportsExportToClipboard);
 
             // Debugging
             TestButtonCommand = new DelegateCommand(TestButton);
@@ -453,7 +453,7 @@ namespace GameSettingsParser.ViewModels
         {
         }
         
-        private void ExportToFile()
+        private void ParseToFile()
         {
             var analysisResult = GatherExportResult();
 
@@ -463,22 +463,22 @@ namespace GameSettingsParser.ViewModels
             var saveFileDialog = new SaveFileDialog()
             {
                 Title = "Save Exported Data",
-                Filter = _dataExportService.FileFilter,
-                DefaultExt = _dataExportService.FileExtension,
+                Filter = _analysisExportService.FileFilter,
+                DefaultExt = _analysisExportService.FileExtension,
                 FileName = "Exported Data"
             };
 
             if (saveFileDialog.ShowDialog() == false)
                 return;
             
-            _dataExportService.ExportToFile(analysisResult, _parsingProfile, saveFileDialog.FileName);
+            _analysisExportService.ExportToFile(analysisResult, _parsingProfile, saveFileDialog.FileName);
         }
 
-        private void ExportToClipboard()
+        private void ParseToClipboard()
         {
             var analysisResult = GatherExportResult();
             if (analysisResult != null)
-                _dataExportService.ExportToClipboard(analysisResult, _parsingProfile);
+                _analysisExportService.ExportToClipboard(analysisResult, _parsingProfile);
         }
 
         private ImageAnalysisResultModel? GatherExportResult()
@@ -525,8 +525,8 @@ namespace GameSettingsParser.ViewModels
             ((DelegateCommand)ClearTypeInstancesCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)ClearAllInstancesCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)TestButtonCommand).RaiseCanExecuteChanged();
-            ((DelegateCommand)ExportToFileCommand).RaiseCanExecuteChanged();
-            ((DelegateCommand)ExportToClipboardCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)ParseToFileCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)ParseToClipboardCommand).RaiseCanExecuteChanged();
         }
         
         private void RaiseProfilePropertiesChanged()

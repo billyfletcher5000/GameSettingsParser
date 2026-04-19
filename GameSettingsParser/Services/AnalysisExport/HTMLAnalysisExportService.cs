@@ -5,9 +5,9 @@ using System.Windows;
 using GameSettingsParser.Model;
 using GameSettingsParser.Utility;
 
-namespace GameSettingsParser.Services.DataExport
+namespace GameSettingsParser.Services.AnalysisExport
 {
-    public class HTMLDataExportService : IDataExportService
+    public class HTMLAnalysisExportService : IAnalysisExportService
     {
         private const string StylesheetPath = "html_export/styles.css";
         

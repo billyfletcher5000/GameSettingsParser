@@ -1,5 +1,5 @@
 ﻿using System.Windows;
-using GameSettingsParser.Services.DataExport;
+using GameSettingsParser.Services.AnalysisExport;
 using GameSettingsParser.Services.ImageAnalysis;
 using GameSettingsParser.Services.TextComparison;
 using GameSettingsParser.Services.Validation;
@@ -23,7 +23,7 @@ public partial class App : PrismApplication
     protected override void RegisterTypes(IContainerRegistry containerRegistry)
     {
         containerRegistry.RegisterForNavigation<MainWindow, MainWindowViewModel>();
-        containerRegistry.Register<IDataExportService, HTMLDataExportService>();
+        containerRegistry.Register<IAnalysisExportService, HTMLAnalysisExportService>();
         containerRegistry.Register<IImageAnalysisService, TesseractImageAnalysisService>();
         containerRegistry.Register<ITextComparisonService, CombinedTextComparisonService>();
         containerRegistry.Register<IProfileValidationService, BasicProfileValidationService>();
