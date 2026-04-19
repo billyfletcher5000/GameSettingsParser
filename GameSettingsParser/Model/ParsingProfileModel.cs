@@ -143,7 +143,8 @@ namespace GameSettingsParser.Model
                 {
                     var serializer = JsonSerializer.Create(new JsonSerializerSettings()
                     {
-                        PreserveReferencesHandling = PreserveReferencesHandling.Objects
+                        PreserveReferencesHandling = PreserveReferencesHandling.Objects,
+                        Formatting = Formatting.Indented
                     });
                     serializer.Serialize(writer, profile);
                 }
@@ -166,7 +167,8 @@ namespace GameSettingsParser.Model
                 {
                     var serializer = JsonSerializer.Create(new JsonSerializerSettings()
                     {
-                        PreserveReferencesHandling = PreserveReferencesHandling.Objects
+                        PreserveReferencesHandling = PreserveReferencesHandling.Objects,
+                        Formatting = Formatting.Indented
                     });
                 
                     if(serializer.Deserialize(reader, typeof(ParsingProfileModel)) is ParsingProfileModel loadedProfile)

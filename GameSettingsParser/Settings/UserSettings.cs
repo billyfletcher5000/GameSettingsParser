@@ -40,7 +40,8 @@ public class UserSettings
             {
                 JsonSerializer serializer = JsonSerializer.Create(new JsonSerializerSettings()
                 {
-                    PreserveReferencesHandling = PreserveReferencesHandling.Objects
+                    PreserveReferencesHandling = PreserveReferencesHandling.Objects,
+                    Formatting = Formatting.Indented
                 });
                 serializer.Serialize(writer, Instance);
             }
