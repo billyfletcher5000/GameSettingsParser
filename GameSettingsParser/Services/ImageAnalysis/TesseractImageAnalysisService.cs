@@ -31,9 +31,14 @@ namespace GameSettingsParser.Services.ImageAnalysis
         {
             _engine = new TesseractEngine(@"./TesseractData", "eng", EngineMode.Default);
             
-            // Disable debug output, it prints an "Empty Page!!" error when we test regions that don't have text in them,
-            // which while 'correct' is also expected behaviour. It would be better if we could suppress this specific message
-            // but it does not appear possible.
+            /* Disable debug output, it prints an "Empty Page!!" error when we test regions that don't have text in them,
+             * which while 'correct' is also expected behaviour. It would be better if we could suppress this specific message
+             * but it does not appear possible.
+             * It is still possible to see errors like:
+             *     Error in boxClipToRectangle: box outside rectangle
+             *     Error in pixScanForForeground: invalid box
+             * These can also be ignored in most situations and result from an issue with Tesseract's usage of Leptonica
+             */
             _engine.SetVariable("debug_file", "NUL");
         }
         
