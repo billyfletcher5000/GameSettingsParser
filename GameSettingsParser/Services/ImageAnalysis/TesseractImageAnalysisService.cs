@@ -93,9 +93,12 @@ namespace GameSettingsParser.Services.ImageAnalysis
                             var text = page.GetText();
                             
                             var imageFilename = Path.GetFileName(imagePath);
-                            Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/");
-                            croppedImage.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/{imageFilename}_{markupType.Name}.png", ImageFormat.Png);
-                            
+                            if (UserSettings.Instance.SaveAnalysisTemporaryImages)
+                            {
+                                Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/");
+                                croppedImage.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/{imageFilename}_{markupType.Name}.png", ImageFormat.Png);
+                            }
+
                             ImageAnalysisResultModel.ProcessedImage processedImage = GetOrCreateSetting(imageAnalysisResult, imagePath);
                     
                             if(!processedImage.MarkupTypeToValues.ContainsKey(markupType))
