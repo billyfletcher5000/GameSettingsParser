@@ -19,6 +19,10 @@ public class UserSettings
     
     public string SelectedMarkupType { get; set; } = "";
     
+    public bool HighDebugVerbosity { get; set; } = false;
+    
+    public bool SaveAnalysisTemporaryImages { get; set; } = false;
+    
     public ObservableCollection<Type> TextComparisonServices { get; } = [typeof(ColorSimilarityTextComparisonService)];
 
     public struct WindowSettings

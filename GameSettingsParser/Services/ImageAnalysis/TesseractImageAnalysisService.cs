@@ -12,7 +12,7 @@ using Rectangle = System.Drawing.Rectangle;
 
 namespace GameSettingsParser.Services.ImageAnalysis
 {
-    public class TesseractImageAnalysisService : IImageAnalysisService
+    public partial class TesseractImageAnalysisService : IImageAnalysisService
     {
         private struct DynamicMarkupInstance
         {
@@ -158,6 +158,9 @@ namespace GameSettingsParser.Services.ImageAnalysis
         /// <exception cref="Exception">Throws when search areas are incorrectly set up or validated</exception>
         private DynamicMarkupInstanceSet ProcessDynamicMarkupInstances(ImageAnalysisResultModel resultModel, ParsingProfileModel parsingProfile, MarkupTypeModel markupType, string[] imagePaths)
         {
+            var highDebugVerbosity = UserSettings.Instance.HighDebugVerbosity;
+            var saveTempImages = UserSettings.Instance.SaveAnalysisTemporaryImages;
+            
             var dynamicMarkupInstances = new DynamicMarkupInstanceSet();
             
             // Calculate whether we are searching for instances within a search area or the whole image
@@ -195,8 +198,11 @@ namespace GameSettingsParser.Services.ImageAnalysis
                     var croppedImage = bitmap.Clone(RectToRectangle(markupInstance.Rect), bitmap.PixelFormat);
                     targetBitmaps.Add(croppedImage);
 
-                    Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/cropped_targets/");
-                    croppedImage.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/cropped_targets/{markupType.Name}_{imageInstance.Image.Name}.png", ImageFormat.Png);
+                    if (saveTempImages)
+                    {
+                        Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/cropped_targets/");
+                        croppedImage.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/cropped_targets/{markupType.Name}_{imageInstance.Image.Name}.png", ImageFormat.Png);
+                    }
                 }
             }
 
@@ -233,16 +239,21 @@ namespace GameSettingsParser.Services.ImageAnalysis
                                         continue;
                                     
                                     var lineText = iterator.GetText(PageIteratorLevel.TextLine);
-                                    Console.WriteLine($"Line: {lineText}");
+                                    
+                                    if(highDebugVerbosity)
+                                        Console.WriteLine($"Line: {lineText}");
                                     
                                     var wordText = iterator.GetText(PageIteratorLevel.Word);
 
                                     var rectangle = RectToRectangle(boundingBox);
                                     var regionBitmap = bitmap.Clone(rectangle, bitmap.PixelFormat);
-                                    string imageFilename = Path.GetFileName(imagePath);
-                                    Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/");
-                                    regionBitmap.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/{imageFilename}_{wordText}.png", ImageFormat.Png);
-
+                                    if(saveTempImages)
+                                    {
+                                        string imageFilename = Path.GetFileName(imagePath);
+                                        Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/");
+                                        regionBitmap.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/{imageFilename}_{wordText}.png", ImageFormat.Png);
+                                    }
+                                    
                                     var textComparisonService = ContainerLocator.Current.Resolve<ITextComparisonService>();
 
                                     foreach (var targetBitmap in targetBitmaps)
@@ -257,7 +268,8 @@ namespace GameSettingsParser.Services.ImageAnalysis
                                             isHighestConfidenceWordSequence = true;
                                         }
                                         
-                                        Console.WriteLine($"Text: {wordText}, Confidence: {newConfidence}, Best Match: {bestMatchText}, Best Match Confidence: {confidence}");
+                                        if(highDebugVerbosity)
+                                            Console.WriteLine($"Text: {wordText}, Confidence: {newConfidence}, Best Match: {bestMatchText}, Best Match Confidence: {confidence}");
                                     }
 
                                     // Check the word sequence hasn't ended, if it has, condense the last sequence if it's likely our target
@@ -398,7 +410,10 @@ namespace GameSettingsParser.Services.ImageAnalysis
                 return string.Empty;
 
             // Replace any run of whitespace (spaces, tabs, newlines, etc) and unwanted punctuation with a single space and trim
-            return Regex.Replace(input, @"\s+|[_<>\[\]|]+", " ").Trim();
+            return MyRegex().Replace(input, " ").Trim();
         }
+
+        [GeneratedRegex(@"\s+|[_<>\[\]|]+")]
+        private static partial Regex MyRegex();
     }
 }
