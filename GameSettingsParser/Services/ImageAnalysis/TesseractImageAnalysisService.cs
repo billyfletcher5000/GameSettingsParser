@@ -398,7 +398,7 @@ namespace GameSettingsParser.Services.ImageAnalysis
                 return string.Empty;
 
             // Replace any run of whitespace (spaces, tabs, newlines, etc) and unwanted punctuation with a single space and trim
-            return Regex.Replace(input, @"\s+|[_<>\[\]]+", " ").Trim();
+            return Regex.Replace(input, @"\s+|[_<>\[\]|]+", " ").Trim();
         }
     }
 }

@@ -115,10 +115,10 @@ namespace GameSettingsParser.Services.AnalysisExport
                                         finalPath = Path.Combine(Path.Combine(screenshotsFolder, section.Name.ToLower()), Path.GetFileName(screenshotPath));
                                         Directory.CreateDirectory(Path.GetDirectoryName(finalPath)!);
                                         File.Copy(screenshotPath, finalPath, true);
+                                        finalPath = Path.GetRelativePath(Path.GetDirectoryName(outputPath)!, finalPath);
                                     }
 
-                                    var relativePath = Path.GetRelativePath(Path.GetDirectoryName(outputPath)!, finalPath);
-                                    sb.AppendLine($"{new string('\t', indent)}<a href=\"{relativePath}\"><img src=\"{relativePath}\" width=\"96\" height=\"54\" /></a>\n");
+                                    sb.AppendLine($"{new string('\t', indent)}<a href=\"{finalPath}\"><img src=\"{finalPath}\" width=\"96\" height=\"54\" /></a>\n");
                                 }
                             }
                         }
