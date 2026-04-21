@@ -2,6 +2,7 @@
 using System.IO;
 using System.Windows;
 using GameSettingsParser.Model;
+using GameSettingsParser.Model.TextComparisonConfiguration;
 using GameSettingsParser.Services.TextComparison;
 using Newtonsoft.Json;
 
@@ -23,7 +24,7 @@ public class UserSettings
     
     public bool SaveAnalysisTemporaryImages { get; set; } = false;
     
-    public ObservableCollection<Type> TextComparisonServices { get; } = [typeof(ColorSimilarityTextComparisonService)];
+    public ITextComparisonConfigurationModel DefaultTextComparisonConfiguration { get; set; } = new CombinedTextComparisonConfigurationModel();
 
     public struct WindowSettings
     {

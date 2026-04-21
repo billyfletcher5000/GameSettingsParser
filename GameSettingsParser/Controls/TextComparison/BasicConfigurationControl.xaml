@@ -1,0 +1,19 @@
+﻿<UserControl x:Class="GameSettingsParser.Controls.TextComparison.BasicConfigurationControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mvvm="http://prismlibrary.com/"
+             xmlns:viewModels="clr-namespace:GameSettingsParser.ViewModels"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mvvm:ViewModelLocator.AutoWireViewModel="True"
+             d:DataContext="{d:DesignInstance Type=viewModels:BasicConfigurationControlViewModel, IsDesignTimeCreatable=False}"
+             mc:Ignorable="d"
+             d:DesignHeight="100" d:DesignWidth="190">
+    <Grid Margin="5">
+        <StackPanel Orientation="Horizontal" Height="35">
+            <TextBlock Margin="0" VerticalAlignment="Center">Minimum Confidence:</TextBlock>
+            <xctk:SingleUpDown MinWidth="50" Margin="5" Value="{Binding Path=MinimumConfidence}" Increment="0.05"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

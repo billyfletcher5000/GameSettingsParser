@@ -1,10 +1,16 @@
 ﻿using System.Drawing;
+using System.Windows.Controls;
+using GameSettingsParser.Attributes;
+using GameSettingsParser.Controls.TextComparison;
+using GameSettingsParser.Model;
+using GameSettingsParser.Model.TextComparisonConfiguration;
 using GameSettingsParser.Utility;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace GameSettingsParser.Services.TextComparison
 {
+    [RegionNavigationKey(nameof(BasicConfigurationControl))]
     public abstract class MLTextComparisonService : ITextComparisonService
     {
         protected abstract string ModelPath { get; }
@@ -12,14 +18,33 @@ namespace GameSettingsParser.Services.TextComparison
         protected abstract float[] Mean { get; }
         protected abstract float[] Std { get; }
         
-        public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB)
+        private BasicTextComparisonConfigurationModel? _thisConfiguration;
+
+        public ITextComparisonConfigurationModel? Configuration
+        {
+            get => ThisConfiguration;
+            set => ThisConfiguration = value as BasicTextComparisonConfigurationModel;
+        }
+
+        public BasicTextComparisonConfigurationModel? ThisConfiguration
+        {
+            get => _thisConfiguration;
+            set => _thisConfiguration = value;
+        }
+
+        public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB, ParsingProfileModel parsingProfile)
         {
             var session = new InferenceSession(ModelPath);
             
             var imageAFeatures = ExtractFeatures(session, imageA);
             var imageBFeatures = ExtractFeatures(session, imageB);
 
-            return CalculateCosineSimilarity(imageAFeatures, imageBFeatures);
+            var confidence = CalculateCosineSimilarity(imageAFeatures, imageBFeatures);
+
+            if (ThisConfiguration is not null && confidence < ThisConfiguration.MinimumConfidence)
+                return 0.0;
+
+            return confidence;
         }
 
         protected virtual DenseTensor<float> CreateTensor(float[] data)

@@ -266,7 +266,7 @@ namespace GameSettingsParser.Services.ImageAnalysis
 
                                     foreach (var targetBitmap in targetBitmaps)
                                     {
-                                        var newConfidence = textComparisonService.GetConfidenceInterval(targetBitmap, regionBitmap);
+                                        var newConfidence = textComparisonService.GetConfidenceInterval(targetBitmap, regionBitmap, parsingProfile);
 
                                         if (newConfidence > confidence && newConfidence > minimumConfidence)
                                         {

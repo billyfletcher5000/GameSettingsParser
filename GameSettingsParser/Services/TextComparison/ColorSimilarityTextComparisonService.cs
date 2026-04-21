@@ -1,12 +1,34 @@
 ﻿using System.Drawing;
+using System.Windows.Controls;
+using GameSettingsParser.Attributes;
+using GameSettingsParser.Controls.TextComparison;
+using GameSettingsParser.Model;
+using GameSettingsParser.Model.TextComparisonConfiguration;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 
 namespace GameSettingsParser.Services.TextComparison
 {
+    [RegionNavigationKey(nameof(BasicConfigurationControl))]
     public class ColorSimilarityTextComparisonService : ITextComparisonService
     {
-        public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB)
+        private ColorSimilarityTextComparisonConfigurationModel? _thisConfiguration;
+
+        public ITextComparisonConfigurationModel? Configuration
+        {
+            get => ThisConfiguration;
+            set => ThisConfiguration = value as ColorSimilarityTextComparisonConfigurationModel;
+        }
+
+        public ColorSimilarityTextComparisonConfigurationModel? ThisConfiguration
+        {
+            get => _thisConfiguration;
+            set => _thisConfiguration = value;
+        }
+
+        public string RegionNavigationKey => nameof(BasicConfigurationControl);
+
+        public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB, ParsingProfileModel parsingProfile)
         {
             var matA = imageA.ToMat();
             var matB = imageB.ToMat();
@@ -25,6 +47,9 @@ namespace GameSettingsParser.Services.TextComparison
             Cv2.Normalize(histB, histB, 1.0, 0.0, NormTypes.L1);
 
             var correlation = 1.0 - Cv2.CompareHist(histA, histB, HistCompMethods.Bhattacharyya);
+
+            if (correlation < ThisConfiguration?.MinimumConfidence)
+                return 0.0;
 
             return correlation;
         }

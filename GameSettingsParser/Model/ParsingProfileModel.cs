@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using GameSettingsParser.Model.TextComparisonConfiguration;
 using GameSettingsParser.Utility;
 using Newtonsoft.Json;
 
@@ -11,11 +12,13 @@ namespace GameSettingsParser.Model
         private bool _hasSelfChanges = false;
         private double _minimumDynamicComparisonConfidence = 0.0;
         private int _wordGapThreshold = 10;
+        private ITextComparisonConfigurationModel? _textComparisonConfiguration;
 
         public string Name { get; set; } = "Untitled";
         public ObservableCollection<MarkupTypeModel> MarkupTypes { get; } = [];
         public ObservableCollection<ImageModel> Images { get; } = [];
         public ObservableCollection<ImageInstanceModel> ImageInstances { get; } = [];
+        
 
         /// <summary>
         /// The amount of pixels between words' bounding boxes for them to be considered part of the same text string
@@ -47,12 +50,28 @@ namespace GameSettingsParser.Model
             }
         }
 
+        public ITextComparisonConfigurationModel? TextComparisonConfiguration
+        {
+            get => _textComparisonConfiguration;
+            set
+            {
+                if (_textComparisonConfiguration != value)
+                {
+                    _textComparisonConfiguration = value;
+                    _hasSelfChanges = true;
+                }
+            }
+        }
+
         [JsonIgnore]
         public bool HasChanges 
         {
             get
             {
                 if (_hasSelfChanges) 
+                    return true;
+
+                if (_textComparisonConfiguration is { HasChanges: true })
                     return true;
                 
                 foreach (var imageModel in Images)

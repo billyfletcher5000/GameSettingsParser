@@ -1,46 +1,88 @@
 ﻿using System.Collections;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Drawing;
+using System.Windows.Controls;
+using GameSettingsParser.Attributes;
+using GameSettingsParser.Controls.TextComparison;
+using GameSettingsParser.Model;
+using GameSettingsParser.Model.TextComparisonConfiguration;
 using GameSettingsParser.Settings;
 
 namespace GameSettingsParser.Services.TextComparison
 {
+    [RegionNavigationKey(nameof(CombinedConfigurationControl))]
     public class CombinedTextComparisonService : ITextComparisonService
     {
         private readonly List<ITextComparisonService> _services = [];
-        
-        public CombinedTextComparisonService()
+
+        private CombinedTextComparisonConfigurationModel? _thisConfiguration;
+
+        public ITextComparisonConfigurationModel? Configuration
         {
-            var serviceTypes = UserSettings.Instance.TextComparisonServices;
-            serviceTypes.CollectionChanged += OnServiceTypesSettingsCollectionChanged;
-            
-            // We instantiate each type every time
-            foreach (var serviceType in serviceTypes)
-                InstantiateServiceType(serviceType);
+            get => ThisConfiguration;
+            set => ThisConfiguration = value as CombinedTextComparisonConfigurationModel;
         }
 
-        public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB)
+        public CombinedTextComparisonConfigurationModel? ThisConfiguration
+        {
+            get => _thisConfiguration;
+            set
+            {
+                if (_thisConfiguration == value) return;
+                
+                if (_thisConfiguration != null)
+                    _thisConfiguration.Configurations.CollectionChanged -= OnServiceTypesSettingsCollectionChanged;
+                
+                _thisConfiguration = value;
+                _services.Clear();
+                
+                if (_thisConfiguration != null)
+                {
+                    var configurations = _thisConfiguration.Configurations;
+                    configurations.CollectionChanged += OnServiceTypesSettingsCollectionChanged;
+            
+                    // We instantiate each type every time
+                    foreach (var configuration in configurations)
+                    {
+                        var service = InstantiateServiceType(configuration.ConfigurationModel.ServiceType);
+                        if (service is not null)
+                            service.Configuration = configuration.ConfigurationModel;
+                    }
+                }
+            }
+        }
+
+        public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB, ParsingProfileModel parsingProfile)
         {
             // TODO: Add weighting
             double aggregate = 0.0f;
             foreach (var service in _services)
             {
-                aggregate += service.GetConfidenceInterval(imageA, imageB);
+                var weight = ThisConfiguration?.Configurations.FirstOrDefault(c => c.ConfigurationModel.ServiceType == service.GetType()).Weight ?? 1.0f;
+                aggregate += service.GetConfidenceInterval(imageA, imageB, parsingProfile) * weight;
             }
             
-            return aggregate / _services.Count;
+            var confidence = aggregate / _services.Count;
+            
+            if(confidence < ThisConfiguration?.MinimumConfidence)
+                return 0.0;
+            
+            return confidence;
         }
 
-        private void InstantiateServiceType(Type serviceType)
+        private ITextComparisonService? InstantiateServiceType(Type serviceType)
         {
             object? serviceInstance = Activator.CreateInstance(serviceType);
             if (serviceInstance is not ITextComparisonService textComparisonService)
             {
                 Console.WriteLine($"Failed to create instance of {serviceType.Name}, likely not a valid {nameof(ITextComparisonService)}");
-                return;
+                return null;
             }
                 
             _services.Add(textComparisonService);
+            return textComparisonService;
         }
 
         private void OnServiceTypesSettingsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
