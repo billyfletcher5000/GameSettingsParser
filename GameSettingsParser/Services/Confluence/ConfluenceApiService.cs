@@ -1,5 +1,8 @@
-﻿using System.Net.Http;
+﻿using System.IO;
+using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -7,11 +10,10 @@ namespace GameSettingsParser.Services.Confluence
 {
     public sealed class ConfluenceApiService
     {
-        private readonly HttpClient _httpClient;
+        private readonly HttpClient _httpClient = new();
 
-        public ConfluenceApiService(HttpClient httpClient)
+        public ConfluenceApiService()
         {
-            _httpClient = httpClient;
         }
 
         public async Task<IReadOnlyList<AtlassianAccessibleResource>> GetConfluenceAccessibleResourcesAsync(
@@ -147,6 +149,115 @@ namespace GameSettingsParser.Services.Confluence
 
             return pages;
         }
+        
+        public async Task<ConfluenceAttachment?> UploadAttachmentToPageAsync(
+            string accessToken,
+            string cloudId,
+            string pageId,
+            Stream attachmentStream,
+            string fileName,
+            string? contentType,
+            CancellationToken cancellationToken)
+        {
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"https://api.atlassian.com/ex/confluence/{cloudId}/wiki/rest/api/content/{pageId}/child/attachment");
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            request.Headers.Add("X-Atlassian-Token", "no-check");
+
+            using var formData = new MultipartFormDataContent();
+
+            var fileContent = new StreamContent(attachmentStream);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(
+                string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType);
+
+            formData.Add(fileContent, "file", fileName);
+
+            request.Content = formData;
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+
+            var attachmentResponse = await JsonSerializer.DeserializeAsync<ConfluenceAttachmentResponse>(
+                responseStream,
+                JsonOptions.Default,
+                cancellationToken);
+
+            return attachmentResponse?.Results.FirstOrDefault();
+        }
+        
+        public async Task<string> GetPageStorageBodyAsync(
+            string accessToken,
+            string cloudId,
+            string pageId,
+            CancellationToken cancellationToken = default)
+        {
+            var requestUrl =
+                $"https://api.atlassian.com/ex/confluence/{cloudId}/wiki/rest/api/content/{pageId}?expand=body.storage";
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+
+            var page = await response.Content.ReadFromJsonAsync<ConfluencePageStorageResponse>(
+                cancellationToken: cancellationToken);
+            
+            return page?.Body?.Storage?.Value
+                   ?? throw new InvalidOperationException("Confluence response did not contain body.storage.value.");
+        }
+        
+        public async Task UpdatePageStorageBodyAsync(
+            string accessToken,
+            string cloudId,
+            string pageId,
+            string title,
+            int currentVersionNumber,
+            string pageBodyInStorageFormat,
+            CancellationToken cancellationToken = default)
+        {
+            var url =
+                $"https://api.atlassian.com/ex/confluence/{cloudId}/wiki/rest/api/content/{pageId}";
+
+            using var request = new HttpRequestMessage(HttpMethod.Put, url);
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var payload = new
+            {
+                id = pageId,
+                type = "page",
+                title,
+                version = new
+                {
+                    number = currentVersionNumber + 1
+                },
+                body = new
+                {
+                    storage = new
+                    {
+                        value = pageBodyInStorageFormat,
+                        representation = "storage"
+                    }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+
+            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+        }
 
     }
 
@@ -215,6 +326,27 @@ namespace GameSettingsParser.Services.Confluence
         [JsonPropertyName("history")]
         public ConfluenceHistory? History { get; init; }
     }
+    
+    public sealed class ConfluencePageStorageResponse
+    {
+        [JsonPropertyName("body")]
+        public ConfluencePageBody? Body { get; set; }
+    }
+
+    public sealed class ConfluencePageBody
+    {
+        [JsonPropertyName("storage")]
+        public ConfluenceStorageBody? Storage { get; set; }
+    }
+
+    public sealed class ConfluenceStorageBody
+    {
+        [JsonPropertyName("value")]
+        public string? Value { get; set; }
+
+        [JsonPropertyName("representation")]
+        public string? Representation { get; set; }
+    }
 
     public sealed class ConfluenceLinks
     {
@@ -244,6 +376,57 @@ namespace GameSettingsParser.Services.Confluence
     {
         [JsonPropertyName("when")]
         public DateTimeOffset? When { get; init; }
+    }
+    
+    public class ConfluenceAttachmentResponse
+    {
+        [JsonPropertyName("results")]
+        public List<ConfluenceAttachment> Results { get; set; } = [];
+    }
+
+    public class ConfluenceAttachment
+    {
+        [JsonPropertyName("id")]
+        public string? Id { get; set; }
+
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
+
+        [JsonPropertyName("status")]
+        public string? Status { get; set; }
+
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
+
+        [JsonPropertyName("metadata")]
+        public ConfluenceAttachmentMetadata? Metadata { get; set; }
+
+        [JsonPropertyName("extensions")]
+        public ConfluenceAttachmentExtensions? Extensions { get; set; }
+
+        [JsonPropertyName("_links")]
+        public ConfluenceLinks? Links { get; set; }
+
+        [JsonPropertyName("version")]
+        public ConfluenceVersion? Version { get; set; }
+    }
+
+    public class ConfluenceAttachmentMetadata
+    {
+        [JsonPropertyName("mediaType")]
+        public string? MediaType { get; set; }
+    }
+
+    public class ConfluenceAttachmentExtensions
+    {
+        [JsonPropertyName("mediaType")]
+        public string? MediaType { get; set; }
+
+        [JsonPropertyName("fileSize")]
+        public long FileSize { get; set; }
+
+        [JsonPropertyName("comment")]
+        public string? Comment { get; set; }
     }
 
     internal static class JsonOptions

@@ -2,6 +2,6 @@
 {
     public interface IKeyVaultService
     {
-        public string GetClientSecret(string secretName);
+        public string? GetClientSecret(string secretName);
     }
 }

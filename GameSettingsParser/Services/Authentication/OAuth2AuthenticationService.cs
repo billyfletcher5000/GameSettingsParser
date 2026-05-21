@@ -10,6 +10,7 @@ namespace GameSettingsParser.Services.Authentication
 {
     public class OAuth2AuthenticationService : IAuthenticationService
     {
+        private const int AuthenticationPort = 28282;
         private readonly IUserStateService _userStateService;
         
         public OAuth2AuthenticationService(IUserStateService userStateService)
@@ -19,7 +20,7 @@ namespace GameSettingsParser.Services.Authentication
         
         public async Task<string> AuthenticateAsync(AuthenticationOptions options)
         {
-            var port = GetRandomUnusedPort();
+            var port = AuthenticationPort;
             var redirectUri = $"http://localhost:{port}/";
 
             using var httpListener = new HttpListener();

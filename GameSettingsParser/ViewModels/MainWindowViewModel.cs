@@ -485,11 +485,11 @@ namespace GameSettingsParser.ViewModels
                 _analysisExportService.ExportToClipboard(analysisResult, _parsingProfile);
         }
 
-        private void ParseToWebsite()
+        private async void ParseToWebsite()
         {
             var analysisResult = GatherExportResult();
             if (analysisResult != null)
-                _analysisExportService.ExportToWebsite(analysisResult, _parsingProfile);
+                await _analysisExportService.ExportToWebsiteAsync(analysisResult, _parsingProfile);
         }
 
         private ImageAnalysisResultModel? GatherExportResult()
