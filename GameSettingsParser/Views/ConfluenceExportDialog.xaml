@@ -50,26 +50,32 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-
-        <Label Grid.Column="0" Grid.Row="0">Space:</Label>
+        
+        <Label Grid.Column="0" Grid.Row="0">Site:</Label>
         <ComboBox Grid.Column="1" Grid.Row="0" Margin="0, 0, 0, 8"
+                  ItemsSource="{Binding Path=SiteOptions}"
+                  SelectedItem="{Binding Path=Site, Mode=TwoWay}"/>
+
+        <Label Grid.Column="0" Grid.Row="1">Space:</Label>
+        <ComboBox Grid.Column="1" Grid.Row="1" Margin="0, 0, 0, 8"
                   ItemsSource="{Binding Path=SpaceOptions}"
                   SelectedItem="{Binding Path=Space, Mode=TwoWay}"/>
         
-        <Label Grid.Column="0" Grid.Row="1">Page:</Label>
-        <ComboBox Grid.Column="1" Grid.Row="1" Margin="0, 0, 0, 8"
+        <Label Grid.Column="0" Grid.Row="2">Page:</Label>
+        <ComboBox Grid.Column="1" Grid.Row="2" Margin="0, 0, 0, 8"
                   ItemsSource="{Binding Path=PageOptions}"
                   SelectedItem="{Binding Path=Page, Mode=TwoWay}"/>
         
-        <Label Grid.Column="0" Grid.Row="2">Mode:</Label>
-        <ComboBox Grid.Column="1" Grid.Row="2" Margin="0, 0, 0, 8"
+        <Label Grid.Column="0" Grid.Row="3">Mode:</Label>
+        <ComboBox Grid.Column="1" Grid.Row="3" Margin="0, 0, 0, 8"
                   ItemsSource="{Binding Path=ModeOptions}"
                   SelectedItem="{Binding Path=Mode, Mode=TwoWay}"/>
 
         <!-- Accept or Cancel -->
-        <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0, 10, 0, 4">
+        <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0, 10, 0, 4">
             <Button Click="OkButton_OnClick" IsDefault="True" IsEnabled="{Binding Path=IsOkEnabled}">OK</Button>
             <Button Click="CancelButton_OnClick" IsCancel="True">Cancel</Button>
         </StackPanel>

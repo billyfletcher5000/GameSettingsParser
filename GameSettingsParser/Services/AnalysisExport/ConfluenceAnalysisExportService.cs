@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using GameSettingsParser.Model;
@@ -16,7 +17,7 @@ namespace GameSettingsParser.Services.AnalysisExport
         private const string Audience = "api.atlassian.com";
         private const string ClientId = "vniU4R2yLFKcQ8VMsFtO5hahMGT2Io5h";
         private const string ClientSecretKeyId = "Atlassian";
-        private const string Scope = "read:page:confluence write:page:confluence read:space:confluence write:confluence-file";
+        private const string Scope = "read:content-details:confluence%20read:page:confluence%20write:page:confluence%20write:attachment:confluence%20read:space:confluence";
         private const string AuthorizationEndpoint = "https://auth.atlassian.com/authorize";
         private const string TokenEndpoint = "https://auth.atlassian.com/oauth/token";
         
@@ -48,16 +49,15 @@ namespace GameSettingsParser.Services.AnalysisExport
             var accessToken = await _authenticationService.AuthenticateAsync(authenticationOptions);
             
             // Should this be done in a service? It seems anti-pattern as it's view related but also a very useful way to do things
-            ConfluenceExportDialogViewModel dialogViewModel = new(_confluenceApiService, accessToken);
-            ConfluenceExportDialog dialog = new ConfluenceExportDialog(dialogViewModel);
+            var dialogViewModel = new ConfluenceExportDialogViewModel(_confluenceApiService, accessToken);
+            var dialog = new ConfluenceExportDialog(dialogViewModel);
 
-            if (dialog.ShowDialog() != true)
+            if (dialog.ShowDialog() != true || dialogViewModel.Config.Page == null)
                 return;
 
             var exportConfig = dialogViewModel.Config;
-            CancellationToken cancellationToken = CancellationToken.None;
+            var cancellationToken = CancellationToken.None;
             
-            Dictionary<string, ConfluenceAttachment> imagePathToAttachment = new();
             
             // Upload image attachments
             foreach (var processedImage in imageAnalysisResult.ProcessedImages)
@@ -67,22 +67,19 @@ namespace GameSettingsParser.Services.AnalysisExport
                 
                 await using var attachmentStream = File.OpenRead(imagePath);
                 
-                var uploadedAttachment = await _confluenceApiService.UploadAttachmentToPageAsync(
+                await _confluenceApiService.UploadAttachmentToPageAsync(
                     accessToken,
                     exportConfig.SiteId,
-                    exportConfig.PageId,
+                    exportConfig.Page.Id!,
                     attachmentStream,
                     Path.GetFileName(processedImage.ScreenshotPath),
                     contentType,
                     cancellationToken);
-
-                if (uploadedAttachment != null)
-                    imagePathToAttachment.Add(imagePath, uploadedAttachment);
             }
             
-            var content = GenerateConfluenceStorageFormatTableFromAnalysisResult(imageAnalysisResult, parsingProfile, imagePathToAttachment);
+            var content = GenerateConfluenceStorageFormatTableFromAnalysisResult(imageAnalysisResult, parsingProfile);
             
-            var pageContent = await _confluenceApiService.GetPageStorageBodyAsync(accessToken, exportConfig.SiteId, exportConfig.PageId, cancellationToken);
+            var pageContent = exportConfig.Page.Body is { Storage: not null } ? exportConfig.Page.Body.Storage.Value : string.Empty;
 
             switch (exportConfig.Mode)
             {
@@ -96,75 +93,68 @@ namespace GameSettingsParser.Services.AnalysisExport
                     break;
             }
             
-            await _confluenceApiService.UpdatePageStorageBodyAsync(accessToken, exportConfig.SiteId, exportConfig.PageId, exportConfig.PageTitle, exportConfig.PageVersion, pageContent, cancellationToken);
+            var url = await _confluenceApiService.UpdatePageBodyAsync(accessToken, exportConfig.SiteId, exportConfig.Page.Id!, exportConfig.Page.Title!, exportConfig.Page.Version!.Number, pageContent, cancellationToken);
+
+            if (url != null)
+            {
+                Console.WriteLine($"Successfully updated page: {url}");
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
         }
 
-        private static string GenerateConfluenceStorageFormatTableFromAnalysisResult(ImageAnalysisResultModel imageAnalysisResult,
-            ParsingProfileModel parsingProfile, Dictionary<string, ConfluenceAttachment> imagePathToAttachment)
+        private static string GenerateConfluenceStorageFormatTableFromAnalysisResult(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)
         {
             StringBuilder sb = new();
 
-            int indent = 0;
             var organisedSettings = SectionDataTableHelper.ConvertAnalysisResult(imageAnalysisResult, parsingProfile);
             foreach (var section in organisedSettings)
             {
                 var columns = section.Settings.Columns.Cast<DataColumn>().ToList();
-                sb.AppendLine($"<h2>{section.Name}</h2>");
-                sb.AppendLine("<table>"); 
-                indent++;
-                
-                
-                sb.AppendLine($"{new string('\t', indent)}<tr>"); 
-                indent++;
+                sb.Append($"<h2>{section.Name}</h2>");
+                sb.Append("<table>");
+                sb.Append($"<tr>"); 
                 foreach (var column in columns)
                 {
                     var markupType = parsingProfile.MarkupTypes.FirstOrDefault(item => item.Name.Equals(column.ColumnName));
                     var columnWidth = markupType != null ? markupType.HTMLExportTableWidth : string.Empty;
                     if(!string.IsNullOrEmpty(columnWidth))
-                        sb.AppendLine($"{new string('\t', indent)}<th width=\"{columnWidth}\">{column.ColumnName}</th>");
+                        sb.Append($"<th width=\"{columnWidth}\">{column.ColumnName}</th>");
                     else
-                        sb.AppendLine($"{new string('\t', indent)}<th>{column.ColumnName}</th>");
-                } 
-                --indent;
-                sb.AppendLine($"{new string('\t', indent)}</tr>");
+                        sb.Append($"<th>{column.ColumnName}</th>");
+                }
+                sb.Append($"</tr>");
                 
                 foreach (var row in section.Settings.Rows.Cast<DataRow>())
                 {
-                    sb.AppendLine($"{new string('\t', indent)}<tr>");
-                    indent++;
+                    sb.Append($"<tr>");
                     foreach (var column in columns)
                     {
                         string? cellValue = row[column] as string;
                         if (cellValue == null)
                             continue;
                         
-                        sb.AppendLine($"{new string('\t', indent)}<td>");
-                        indent++;
+                        sb.Append($"<td>");
                         if (column.ColumnName == SectionDataTableHelper.ScreenshotColumnName)
                         {
                             var screenshotPaths = cellValue.Split(SectionDataTableHelper.ListSeparator);
                             foreach (var screenshotPath in screenshotPaths)
                             {
-                                if (imagePathToAttachment.TryGetValue(screenshotPath, out var attachment))
-                                {
-                                    sb.AppendLine(
-                                        $"{new string('\t', indent)}<ac:image ac:thumbnail=\"true\" ac:width=\"96\" ac:height=\"54\"><ri:attachment ri:filename=\"{attachment.Id}\"/></ac:image>\n");
-                                }
+                                sb.Append($"<ac:image ac:thumbnail=\"true\" ac:width=\"96\" ac:height=\"54\"><ri:attachment ri:filename=\"{Path.GetFileName(screenshotPath)}\"/></ac:image>\n");
                             }
                         }
                         else
                         {
-                            sb.AppendLine($"{new string('\t', indent)}{cellValue}");
+                            sb.Append($"{cellValue}");
                         }
-                        --indent;
-                        sb.AppendLine($"{new string('\t', indent)}</td>");
+                        sb.Append($"</td>");
                     }
-                    --indent;
-                    sb.AppendLine($"{new string('\t', indent)}</tr>");
+                    sb.Append($"</tr>");
                 }
-                
-                --indent;
-                sb.AppendLine("</table>");
+                sb.Append("</table>");
             }
 
             return sb.ToString();

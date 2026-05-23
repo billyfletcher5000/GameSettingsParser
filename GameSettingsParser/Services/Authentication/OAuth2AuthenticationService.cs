@@ -29,22 +29,24 @@ namespace GameSettingsParser.Services.Authentication
             
             var state = _userStateService.GetUserState();
 
-            var authUrl = $"{options.AuthorizationEndpoint}?response_type=code" +
-                               $"&client_id={Uri.EscapeDataString(options.ClientId)}" +
-                               $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
-                               $"&state={state}" +
-                               $"&response_type=code" +
-                               $"&prompt=consent";
+            var authUrl = $"{options.AuthorizationEndpoint}?";
 
             if (options.Audience != null)
             {
-                authUrl += $"&audience={Uri.EscapeDataString(options.Audience)}";
+                authUrl += $"audience={Uri.EscapeDataString(options.Audience)}&";
             }
+
+            authUrl += $"client_id={Uri.EscapeDataString(options.ClientId)}";
             
             if (options.Scope != null)
             {
-                authUrl += $"&scope={Uri.EscapeDataString(options.Scope)}";
+                authUrl += $"&scope={options.Scope}";
             }
+            
+            authUrl += $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
+                       $"&state={state}" +
+                       $"&response_type=code" +
+                       $"&prompt=consent";
 
             Process.Start(new ProcessStartInfo
             {

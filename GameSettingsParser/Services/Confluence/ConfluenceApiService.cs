@@ -21,7 +21,7 @@ namespace GameSettingsParser.Services.Confluence
             CancellationToken cancellationToken)
         {
             var allAccessibleResources = await GetAccessibleResourcesAsync(accessToken, cancellationToken);
-            return allAccessibleResources.Where(r => r.Scopes.Contains("confluence", StringComparer.OrdinalIgnoreCase)).ToList();
+            return allAccessibleResources.Where(r => r.Scopes.Any(s => s.Contains("confluence", StringComparison.OrdinalIgnoreCase))).ToList();
         }
 
         private async Task<IReadOnlyList<AtlassianAccessibleResource>> GetAccessibleResourcesAsync(
@@ -54,100 +54,96 @@ namespace GameSettingsParser.Services.Confluence
         {
             var spaces = new List<ConfluenceSpace>();
 
-            const int limit = 50;
-            var start = 0;
+            var baseUri = new Uri(
+                $"https://api.atlassian.com/ex/confluence/{Uri.EscapeDataString(cloudId)}/");
 
-            while (true)
+            Uri? requestUri = new Uri(baseUri, "wiki/api/v2/spaces?limit=250");
+
+            while (requestUri is not null)
             {
-                var url =
-                    $"https://api.atlassian.com/ex/confluence/{Uri.EscapeDataString(cloudId)}/wiki/rest/api/space" +
-                    $"?limit={limit}&start={start}";
-
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
-
+                using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
                 using var response = await _httpClient.SendAsync(request, cancellationToken);
                 response.EnsureSuccessStatusCode();
 
-                await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-
-                var page = await JsonSerializer.DeserializeAsync<ConfluenceSpaceResponse>(
-                    stream,
-                    JsonOptions.Default,
+                var page = await response.Content.ReadFromJsonAsync<ConfluenceSpaceResponse>(
                     cancellationToken);
 
-                if (page?.Results is null || page.Results.Count == 0)
+                if (page?.Results is { Count: > 0 })
                 {
-                    break;
+                    spaces.AddRange(page.Results);
                 }
 
-                spaces.AddRange(page.Results);
-
-                if (page.Results.Count < limit)
-                {
-                    break;
-                }
-
-                start += limit;
+                requestUri = ResolveConfluenceNextUri(baseUri, page?.Links?.Next);
             }
 
             return spaces;
+
         }
+        
+        private static Uri? ResolveConfluenceNextUri(Uri baseUri, string? nextLink)
+        {
+            if (string.IsNullOrWhiteSpace(nextLink))
+            {
+                return null;
+            }
+
+            if (Uri.TryCreate(nextLink, UriKind.Absolute, out var absoluteUri))
+            {
+                return absoluteUri;
+            }
+
+            var relativeLink = nextLink.TrimStart('/');
+
+            return new Uri(baseUri, relativeLink);
+        }
+
         
         public async Task<IReadOnlyList<ConfluencePage>> GetPagesFromSpaceAsync(
             string accessToken,
             string cloudId,
-            string spaceKey,
+            string spaceId,
             CancellationToken cancellationToken)
         {
+            var baseUri = new Uri(
+                $"https://api.atlassian.com/ex/confluence/{Uri.EscapeDataString(cloudId)}/");
+
+            if (string.IsNullOrWhiteSpace(spaceId))
+            {
+                return [];
+            }
+
             var pages = new List<ConfluencePage>();
 
-            const int limit = 50;
-            var start = 0;
+            Uri? requestUri = new Uri(
+                baseUri,
+                $"wiki/api/v2/spaces/{Uri.EscapeDataString(spaceId)}/pages?limit=250&body-format=storage&sort=title");
 
-            while (true)
+            while (requestUri is not null)
             {
-                var url =
-                    $"https://api.atlassian.com/ex/confluence/{Uri.EscapeDataString(cloudId)}/wiki/rest/api/content" +
-                    $"?type=page" +
-                    $"&spaceKey={Uri.EscapeDataString(spaceKey)}" +
-                    $"&limit={limit}" +
-                    $"&start={start}" +
-                    $"&expand=version,history,_links";
-
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
-
+                using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
                 using var response = await _httpClient.SendAsync(request, cancellationToken);
                 response.EnsureSuccessStatusCode();
 
-                await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-
-                var page = await JsonSerializer.DeserializeAsync<ConfluencePageResponse>(
-                    stream,
+                var page = await response.Content.ReadFromJsonAsync<ConfluencePageResponse>(
                     JsonOptions.Default,
                     cancellationToken);
 
-                if (page?.Results is null || page.Results.Count == 0)
+                if (page?.Results is { Count: > 0 })
                 {
-                    break;
+                    pages.AddRange(page.Results);
                 }
 
-                pages.AddRange(page.Results);
-
-                if (page.Results.Count < limit)
-                {
-                    break;
-                }
-
-                start += limit;
+                requestUri = ResolveConfluenceNextUri(baseUri, page?.Links?.Next);
             }
 
             return pages;
+
         }
         
         public async Task<ConfluenceAttachment?> UploadAttachmentToPageAsync(
@@ -160,7 +156,7 @@ namespace GameSettingsParser.Services.Confluence
             CancellationToken cancellationToken)
         {
             using var request = new HttpRequestMessage(
-                HttpMethod.Post,
+                HttpMethod.Put,
                 $"https://api.atlassian.com/ex/confluence/{cloudId}/wiki/rest/api/content/{pageId}/child/attachment");
 
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -168,16 +164,29 @@ namespace GameSettingsParser.Services.Confluence
 
             using var formData = new MultipartFormDataContent();
 
+            if (attachmentStream.CanSeek)
+                attachmentStream.Position = 0;
+            
             var fileContent = new StreamContent(attachmentStream);
             fileContent.Headers.ContentType = new MediaTypeHeaderValue(
                 string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType);
 
             formData.Add(fileContent, "file", fileName);
-
+            formData.Add(new StringContent("true"), "minorEdit");
+            
             request.Content = formData;
 
             using var response = await _httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            try
+            {
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception e)
+            {
+                var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                Console.WriteLine($"Exception occurred when attempting to upload \"{fileName}\":\n\tResponseBody: {responseBody}\n\tException: {e}");
+            }
+            
 
             await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
@@ -189,32 +198,18 @@ namespace GameSettingsParser.Services.Confluence
             return attachmentResponse?.Results.FirstOrDefault();
         }
         
-        public async Task<string> GetPageStorageBodyAsync(
-            string accessToken,
-            string cloudId,
-            string pageId,
-            CancellationToken cancellationToken = default)
-        {
-            var requestUrl =
-                $"https://api.atlassian.com/ex/confluence/{cloudId}/wiki/rest/api/content/{pageId}?expand=body.storage";
-
-            using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
-
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-            using var response = await _httpClient.SendAsync(request, cancellationToken);
-
-            response.EnsureSuccessStatusCode();
-
-            var page = await response.Content.ReadFromJsonAsync<ConfluencePageStorageResponse>(
-                cancellationToken: cancellationToken);
-            
-            return page?.Body?.Storage?.Value
-                   ?? throw new InvalidOperationException("Confluence response did not contain body.storage.value.");
-        }
-        
-        public async Task UpdatePageStorageBodyAsync(
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="accessToken"></param>
+        /// <param name="cloudId"></param>
+        /// <param name="pageId"></param>
+        /// <param name="title"></param>
+        /// <param name="currentVersionNumber"></param>
+        /// <param name="pageBodyInStorageFormat"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>URL to the updated page if successful, null if not</returns>
+        public async Task<string?> UpdatePageBodyAsync(
             string accessToken,
             string cloudId,
             string pageId,
@@ -223,10 +218,14 @@ namespace GameSettingsParser.Services.Confluence
             string pageBodyInStorageFormat,
             CancellationToken cancellationToken = default)
         {
-            var url =
-                $"https://api.atlassian.com/ex/confluence/{cloudId}/wiki/rest/api/content/{pageId}";
+            var baseUri = new Uri(
+                $"https://api.atlassian.com/ex/confluence/{Uri.EscapeDataString(cloudId)}/");
 
-            using var request = new HttpRequestMessage(HttpMethod.Put, url);
+            Uri? requestUri = new Uri(
+                baseUri,
+                $"wiki/api/v2/pages/{Uri.EscapeDataString(pageId)}");
+            
+            using var request = new HttpRequestMessage(HttpMethod.Put, requestUri);
 
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -234,11 +233,12 @@ namespace GameSettingsParser.Services.Confluence
             var payload = new
             {
                 id = pageId,
-                type = "page",
+                status = "current",
                 title,
                 version = new
                 {
-                    number = currentVersionNumber + 1
+                    number = currentVersionNumber + 1,
+                    message = $"Updated page body from Game Settings Parser"
                 },
                 body = new
                 {
@@ -257,8 +257,24 @@ namespace GameSettingsParser.Services.Confluence
             using var response = await _httpClient.SendAsync(request, cancellationToken);
 
             response.EnsureSuccessStatusCode();
+            
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            using var jsonDoc = JsonDocument.Parse(responseContent);
+            
+            var links = jsonDoc.RootElement.GetProperty("_links");
+            if (links.TryGetProperty("webui", out var webUiElement) && links.TryGetProperty("base", out var baseElement))
+            {
+                var baseString = baseElement.GetString();
+                var webUiString = webUiElement.GetString();
+                if (string.IsNullOrWhiteSpace(baseString) || string.IsNullOrWhiteSpace(webUiString))
+                    return null;
+                
+                var pageUrl = baseString + webUiString;
+                return pageUrl;
+            }
+            
+            return null;
         }
-
     }
 
     public sealed class AtlassianAccessibleResource
@@ -280,7 +296,16 @@ namespace GameSettingsParser.Services.Confluence
     {
         [JsonPropertyName("results")]
         public List<ConfluenceSpace> Results { get; init; } = [];
+        [JsonPropertyName("_links")]
+        public ConfluenceLinks? Links { get; set; }
     }
+
+    public sealed class ConfluenceLinks
+    {
+        [JsonPropertyName("next")]
+        public string? Next { get; set; }
+    }
+
 
     public sealed class ConfluenceSpace
     {
@@ -301,6 +326,9 @@ namespace GameSettingsParser.Services.Confluence
     {
         [JsonPropertyName("results")]
         public List<ConfluencePage> Results { get; init; } = [];
+        
+        [JsonPropertyName("_links")]
+        public ConfluenceLinks? Links { get; set; }
     }
 
     public sealed class ConfluencePage
@@ -325,36 +353,27 @@ namespace GameSettingsParser.Services.Confluence
 
         [JsonPropertyName("history")]
         public ConfluenceHistory? History { get; init; }
-    }
-    
-    public sealed class ConfluencePageStorageResponse
-    {
+        
         [JsonPropertyName("body")]
-        public ConfluencePageBody? Body { get; set; }
+        public ConfluencePageBodyBulk? Body { get; init; }
     }
 
-    public sealed class ConfluencePageBody
+    public sealed class ConfluencePageBodyBulk
     {
         [JsonPropertyName("storage")]
-        public ConfluenceStorageBody? Storage { get; set; }
+        public ConfluenceBodyType? Storage { get; set; }
+        
+        [JsonPropertyName("atlas_doc_format")]
+        public ConfluenceBodyType? AtlasDocFormat { get; set; }
     }
 
-    public sealed class ConfluenceStorageBody
+    public sealed class ConfluenceBodyType
     {
         [JsonPropertyName("value")]
         public string? Value { get; set; }
 
         [JsonPropertyName("representation")]
         public string? Representation { get; set; }
-    }
-
-    public sealed class ConfluenceLinks
-    {
-        [JsonPropertyName("webui")]
-        public string? WebUi { get; init; }
-
-        [JsonPropertyName("self")]
-        public string? Self { get; init; }
     }
 
     public sealed class ConfluenceVersion

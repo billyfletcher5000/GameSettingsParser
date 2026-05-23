@@ -1,4 +1,6 @@
-﻿namespace GameSettingsParser.Model
+﻿using GameSettingsParser.Services.Confluence;
+
+namespace GameSettingsParser.Model
 {
     public enum ConfluenceExportConfigMode
     {
@@ -10,9 +12,7 @@
     {
         public string SiteId { get; set; } = string.Empty;
         public string SpaceId { get; set; } = string.Empty;
-        public string PageId { get; set; } = string.Empty;
-        public string PageTitle { get; set; } = string.Empty;
-        public int PageVersion { get; set; } = 1;
+        public ConfluencePage? Page { get; set; }
         public ConfluenceExportConfigMode Mode { get; set; } = ConfluenceExportConfigMode.Append;
         
     }
