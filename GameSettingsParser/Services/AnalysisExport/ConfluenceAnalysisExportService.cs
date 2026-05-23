@@ -3,9 +3,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using GameSettingsParser.Model;
+using GameSettingsParser.Model.Atlassian;
 using GameSettingsParser.Services.Authentication;
 using GameSettingsParser.Services.Confluence;
 using GameSettingsParser.Services.KeyVault;
+using GameSettingsParser.Services.Logging;
 using GameSettingsParser.Utility;
 using GameSettingsParser.ViewModels;
 using GameSettingsParser.Views;
@@ -15,8 +17,8 @@ namespace GameSettingsParser.Services.AnalysisExport
     public class ConfluenceAnalysisExportService : IAnalysisExportService
     {
         private const string Audience = "api.atlassian.com";
-        private const string ClientId = "vniU4R2yLFKcQ8VMsFtO5hahMGT2Io5h";
-        private const string ClientSecretKeyId = "Atlassian";
+        private const string ClientIdVaultName = "Confluence_Client_Id";
+        private const string ClientSecretVaultName = "Confluence_Client_Secret";
         private const string Scope = "read:content-details:confluence%20read:page:confluence%20write:page:confluence%20write:attachment:confluence%20read:space:confluence";
         private const string AuthorizationEndpoint = "https://auth.atlassian.com/authorize";
         private const string TokenEndpoint = "https://auth.atlassian.com/oauth/token";
@@ -26,12 +28,14 @@ namespace GameSettingsParser.Services.AnalysisExport
         private readonly IAuthenticationService _authenticationService;
         private readonly IKeyVaultService _keyVaultService;
         private readonly ConfluenceApiService _confluenceApiService;
+        private readonly ILogService _log;
         
-        public ConfluenceAnalysisExportService(IAuthenticationService authenticationService, IKeyVaultService keyVaultService, ConfluenceApiService confluenceApiService)
+        public ConfluenceAnalysisExportService(IAuthenticationService authenticationService, IKeyVaultService keyVaultService, ConfluenceApiService confluenceApiService, ILogService logService)
         {
            _authenticationService = authenticationService;
            _keyVaultService = keyVaultService;
            _confluenceApiService = confluenceApiService;
+           _log = logService;
         }
         
         public async Task ExportToWebsiteAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)
@@ -40,13 +44,16 @@ namespace GameSettingsParser.Services.AnalysisExport
             {
                 Audience = Audience,
                 AuthorizationEndpoint = AuthorizationEndpoint,
-                ClientId = ClientId,
-                ClientSecret = _keyVaultService.GetClientSecret(ClientSecretKeyId)!,
+                ClientId = _keyVaultService.GetClientSecret(ClientIdVaultName)!,
+                ClientSecret = _keyVaultService.GetClientSecret(ClientSecretVaultName)!,
                 Scope = Scope,
                 TokenEndpoint = TokenEndpoint,
             };
 
             var accessToken = await _authenticationService.AuthenticateAsync(authenticationOptions);
+
+            if (accessToken == null)
+                return;
             
             // Should this be done in a service? It seems anti-pattern as it's view related but also a very useful way to do things
             var dialogViewModel = new ConfluenceExportDialogViewModel(_confluenceApiService, accessToken);
@@ -57,7 +64,6 @@ namespace GameSettingsParser.Services.AnalysisExport
 
             var exportConfig = dialogViewModel.Config;
             var cancellationToken = CancellationToken.None;
-            
             
             // Upload image attachments
             foreach (var processedImage in imageAnalysisResult.ProcessedImages)
@@ -97,7 +103,7 @@ namespace GameSettingsParser.Services.AnalysisExport
 
             if (url != null)
             {
-                Console.WriteLine($"Successfully updated page: {url}");
+                _log.Log($"Successfully updated page: {url}");
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = url,

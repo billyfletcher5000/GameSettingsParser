@@ -1,6 +1,4 @@
-﻿using GameSettingsParser.Services.Confluence;
-
-namespace GameSettingsParser.Model
+﻿namespace GameSettingsParser.Model.Atlassian
 {
     public enum ConfluenceExportConfigMode
     {
@@ -14,6 +12,5 @@ namespace GameSettingsParser.Model
         public string SpaceId { get; set; } = string.Empty;
         public ConfluencePage? Page { get; set; }
         public ConfluenceExportConfigMode Mode { get; set; } = ConfluenceExportConfigMode.Append;
-        
     }
 }

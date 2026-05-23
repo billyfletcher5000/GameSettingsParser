@@ -1,5 +1,5 @@
 ﻿using System.Collections.ObjectModel;
-using GameSettingsParser.Model;
+using GameSettingsParser.Model.Atlassian;
 using GameSettingsParser.Services.Confluence;
 
 namespace GameSettingsParser.ViewModels

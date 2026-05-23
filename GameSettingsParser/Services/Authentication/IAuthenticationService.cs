@@ -12,6 +12,6 @@
     
     public interface IAuthenticationService
     {
-        public Task<string> AuthenticateAsync(AuthenticationOptions options);
+        public Task<string?> AuthenticateAsync(AuthenticationOptions options);
     }
 }

@@ -2,6 +2,6 @@
 {
     public interface IUserStateService
     {
-        string GetUserState();
+        string GetUserState(string clientId);
     }
 }
