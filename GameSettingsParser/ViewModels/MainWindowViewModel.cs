@@ -123,6 +123,7 @@ namespace GameSettingsParser.ViewModels
         
         public ICommand ParseToFileCommand { get; }
         public ICommand ParseToClipboardCommand { get; }
+        public ICommand ParseToWebsiteCommand { get; }
         
         public ICommand TestButtonCommand { get; }
 
@@ -160,6 +161,7 @@ namespace GameSettingsParser.ViewModels
             
             ParseToFileCommand = new DelegateCommand(ParseToFile, () => CanGatherAndExport() && _analysisExportService.SupportsExportToFile);
             ParseToClipboardCommand = new DelegateCommand(ParseToClipboard, () => CanGatherAndExport() && _analysisExportService.SupportsExportToClipboard);
+            ParseToWebsiteCommand = new DelegateCommand(ParseToWebsite, () => CanGatherAndExport() && _analysisExportService.SupportsExportToWebsite);
 
             // Debugging
             TestButtonCommand = new DelegateCommand(TestButton);
@@ -481,6 +483,13 @@ namespace GameSettingsParser.ViewModels
             var analysisResult = GatherExportResult();
             if (analysisResult != null)
                 _analysisExportService.ExportToClipboard(analysisResult, _parsingProfile);
+        }
+
+        private async void ParseToWebsite()
+        {
+            var analysisResult = GatherExportResult();
+            if (analysisResult != null)
+                await _analysisExportService.ExportToWebsiteAsync(analysisResult, _parsingProfile);
         }
 
         private ImageAnalysisResultModel? GatherExportResult()

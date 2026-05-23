@@ -103,6 +103,9 @@
                             <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=ParseToClipboardCommand}">
                                 <TextBlock Text="Parse To Clipboard" Margin="8, 0"/>
                             </Button>
+                            <Button Width="Auto" Height="30" Margin="2, 0" Command="{Binding Path=ParseToWebsiteCommand}">
+                                <TextBlock Text="Parse To Website" Margin="8, 0"/>
+                            </Button>
                         </StackPanel>
                     </GroupBox>
                 </StackPanel>
