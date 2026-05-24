@@ -138,7 +138,7 @@ namespace GameSettingsParser.Services.Authentication
         }
         
         
-        private static async Task<AuthenticationTokenModel?> RefreshTokenAsync(string tokenEndpoint, string clientId, string clientSecret, string redirectUri, string refreshToken)
+        private async Task<AuthenticationTokenModel?> RefreshTokenAsync(string tokenEndpoint, string clientId, string clientSecret, string redirectUri, string refreshToken)
         {
             using var httpClient = new HttpClient();
             var requestBody = new AuthenticationTokenExchangeRequestModel
@@ -156,7 +156,8 @@ namespace GameSettingsParser.Services.Authentication
             if (!response.IsSuccessStatusCode)
             {
                 var responseContent = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Token exchange failed: {responseContent}");
+                _log.Warning($"Token exchange failed: {responseContent}");
+                return null;
             }
             
             await using var responseStream = await response.Content.ReadAsStreamAsync();

@@ -5,10 +5,12 @@ using GameSettingsParser.Services.Confluence;
 using GameSettingsParser.Services.ImageAnalysis;
 using GameSettingsParser.Services.KeyVault;
 using GameSettingsParser.Services.Logging;
+using GameSettingsParser.Services.Progress;
 using GameSettingsParser.Services.SessionStore;
 using GameSettingsParser.Services.TextComparison;
 using GameSettingsParser.Services.UserState;
 using GameSettingsParser.Services.Validation;
+using GameSettingsParser.Services.Windows;
 using GameSettingsParser.Settings;
 using GameSettingsParser.ViewModels;
 using Prism.Unity;
@@ -38,6 +40,8 @@ public partial class App : PrismApplication
         containerRegistry.Register<IUserStateService, BasicUserStateService>();
         containerRegistry.Register<IKeyVaultService, EnvironmentVariableVaultService>();
         containerRegistry.Register<ISessionStoreService, AppSettingsSessionStoreService>();
+        containerRegistry.Register<IWindowService, BasicWindowService>();
+        containerRegistry.Register<IProgressDialogService, ProgressDialogService>();
         containerRegistry.Register<ConfluenceApiService>();
     }
 

@@ -1,0 +1,57 @@
+﻿<Window x:Class="GameSettingsParser.Views.Progress.ProgressDialogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:GameSettingsParser.ViewModels.Progress"
+        xmlns:utility="clr-namespace:GameSettingsParser.Utility"
+        mc:Ignorable="d"
+        Height="140"
+        Width="340"
+        MinHeight="140"
+        MinWidth="340"
+        Title="{Binding WindowTitle}"
+        FontFamily="Segoe UI"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        WindowStartupLocation="CenterOwner"
+        d:DataContext="{d:DesignInstance viewModels:ProgressDialogWindowViewModel, IsDesignTimeCreatable=False}"
+        utility:AutomaticDialogCloser.DialogResult="{Binding IsClosed}" 
+        >
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Window.Resources>
+    
+    <Border BorderBrush="DodgerBlue" BorderThickness="2">
+        <DockPanel Margin="10">
+            <Grid DockPanel.Dock="Bottom">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ProgressBar Grid.Column="0"
+                             Value="{Binding ProgressValue}"
+                             Minimum="0.0"
+                             Maximum="1.0"
+                             IsIndeterminate="{Binding IsProgressBarIndeterminate}"
+                             Height="22" />
+                <Button Grid.Column="1"
+                        Margin="3,0,0,0"
+                        Width="70"
+                        Height="22"
+                        Content="Cancel"
+                        HorizontalAlignment="Right"
+                        Command="{Binding CancelCommand}"
+                        Visibility="{Binding IsCancellable, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            </Grid>
+            <TextBlock Text="{Binding Label}"
+                       TextTrimming="CharacterEllipsis"
+                       DockPanel.Dock="Top" />
+            <TextBlock Text="{Binding SubLabel}"
+                       FontStyle="Italic"
+                       Margin="0,5,0,5"
+                       TextWrapping="Wrap"
+                       TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+    </Border>
+</Window>

@@ -8,9 +8,10 @@ using GameSettingsParser.Services.Authentication;
 using GameSettingsParser.Services.Confluence;
 using GameSettingsParser.Services.KeyVault;
 using GameSettingsParser.Services.Logging;
+using GameSettingsParser.Services.Windows;
 using GameSettingsParser.Utility;
 using GameSettingsParser.ViewModels;
-using GameSettingsParser.Views;
+using GameSettingsParser.Views.AnalysisExport;
 
 namespace GameSettingsParser.Services.AnalysisExport
 {
@@ -29,16 +30,18 @@ namespace GameSettingsParser.Services.AnalysisExport
         private readonly IKeyVaultService _keyVaultService;
         private readonly ConfluenceApiService _confluenceApiService;
         private readonly ILogService _log;
+        private readonly IWindowService _windowService;
         
-        public ConfluenceAnalysisExportService(IAuthenticationService authenticationService, IKeyVaultService keyVaultService, ConfluenceApiService confluenceApiService, ILogService logService)
+        public ConfluenceAnalysisExportService(IAuthenticationService authenticationService, IKeyVaultService keyVaultService, ConfluenceApiService confluenceApiService, ILogService logService, IWindowService windowService)
         {
            _authenticationService = authenticationService;
            _keyVaultService = keyVaultService;
            _confluenceApiService = confluenceApiService;
            _log = logService;
+           _windowService = windowService;
         }
         
-        public async Task ExportToWebsiteAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)
+        public async Task ExportToWebsiteAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             var authenticationOptions = new AuthenticationOptions()
             {
@@ -50,24 +53,45 @@ namespace GameSettingsParser.Services.AnalysisExport
                 TokenEndpoint = TokenEndpoint,
             };
 
-            var accessToken = await _authenticationService.AuthenticateAsync(authenticationOptions);
+            progressText.Report("Confluence Export: Authenticating...");
+            progressPercentage.Report(0.0);
+            
+            var accessToken = await Task.Run(() => _authenticationService.AuthenticateAsync(authenticationOptions), cancellationToken);
 
             if (accessToken == null)
                 return;
+            
+            progressText.Report("Confluence Export: Authentication complete");
+            progressPercentage.Report(1.0);
             
             // Should this be done in a service? It seems anti-pattern as it's view related but also a very useful way to do things
             var dialogViewModel = new ConfluenceExportDialogViewModel(_confluenceApiService, accessToken);
             var dialog = new ConfluenceExportDialog(dialogViewModel);
 
-            if (dialog.ShowDialog() != true || dialogViewModel.Config.Page == null)
+            if (_windowService.ShowDialog(dialog) != true || dialogViewModel.Config.Page == null)
                 return;
+            
+            await Task.Run(() => UpdatePageAsync(imageAnalysisResult, parsingProfile, cancellationToken, progressText, progressPercentage, dialogViewModel, accessToken), cancellationToken);
+        }
+
+        private async Task UpdatePageAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile,
+            CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage,
+            ConfluenceExportDialogViewModel dialogViewModel, string accessToken)
+        {
+            progressText.Report("Confluence Export: Uploading image attachments...");
+            progressPercentage.Report(0.0);
 
             var exportConfig = dialogViewModel.Config;
-            var cancellationToken = CancellationToken.None;
+            
+            var numImages = imageAnalysisResult.ProcessedImages.Count;
+            var imageIndex = 0;
             
             // Upload image attachments
             foreach (var processedImage in imageAnalysisResult.ProcessedImages)
             {
+                progressText.Report($"Confluence Export: Uploading image attachment {imageIndex + 1} of {numImages}: {Path.GetFileName(processedImage.ScreenshotPath)}");
+                progressPercentage.Report((double)imageIndex / numImages);
+                
                 var imagePath = processedImage.ScreenshotPath;
                 var contentType = ImageContentTypeHelper.GetImageContentType(imagePath);
                 
@@ -76,16 +100,21 @@ namespace GameSettingsParser.Services.AnalysisExport
                 await _confluenceApiService.UploadAttachmentToPageAsync(
                     accessToken,
                     exportConfig.SiteId,
-                    exportConfig.Page.Id!,
+                    exportConfig.Page!.Id!,
                     attachmentStream,
                     Path.GetFileName(processedImage.ScreenshotPath),
                     contentType,
                     cancellationToken);
+                
+                imageIndex++;
             }
+            
+            progressText.Report("Confluence Export: Uploading image attachments complete");
+            progressPercentage.Report(1.0);
             
             var content = GenerateConfluenceStorageFormatTableFromAnalysisResult(imageAnalysisResult, parsingProfile);
             
-            var pageContent = exportConfig.Page.Body is { Storage: not null } ? exportConfig.Page.Body.Storage.Value : string.Empty;
+            var pageContent = exportConfig.Page!.Body is { Storage: not null } ? exportConfig.Page.Body.Storage.Value : string.Empty;
 
             switch (exportConfig.Mode)
             {
@@ -99,10 +128,13 @@ namespace GameSettingsParser.Services.AnalysisExport
                     break;
             }
             
+            progressText.Report("Confluence Export: Updating page...");
+            progressPercentage.Report(0.0);
             var url = await _confluenceApiService.UpdatePageBodyAsync(accessToken, exportConfig.SiteId, exportConfig.Page.Id!, exportConfig.Page.Title!, exportConfig.Page.Version!.Number, pageContent, cancellationToken);
 
             if (url != null)
             {
+                progressText.Report("Confluence Export: Page update complete");
                 _log.Log($"Successfully updated page: {url}");
                 Process.Start(new ProcessStartInfo
                 {
@@ -110,6 +142,13 @@ namespace GameSettingsParser.Services.AnalysisExport
                     UseShellExecute = true
                 });
             }
+            else
+            {
+                progressText.Report("Confluence Export: Page update failed");
+                _log.Warning("Failed to update page");
+            }
+            
+            progressPercentage.Report(1.0);
         }
 
         private static string GenerateConfluenceStorageFormatTableFromAnalysisResult(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)

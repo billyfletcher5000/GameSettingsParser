@@ -8,7 +8,10 @@ using Microsoft.Win32;
 using GameSettingsParser.Model;
 using GameSettingsParser.Services.AnalysisExport;
 using GameSettingsParser.Services.ImageAnalysis;
+using GameSettingsParser.Services.Logging;
+using GameSettingsParser.Services.Progress;
 using GameSettingsParser.Services.Validation;
+using GameSettingsParser.Services.Windows;
 using GameSettingsParser.Settings;
 using GameSettingsParser.Utility;
 using GameSettingsParser.Views;
@@ -132,12 +135,25 @@ namespace GameSettingsParser.ViewModels
         private readonly IImageAnalysisService _imageAnalysisService;
         private readonly IAnalysisExportService _analysisExportService;
         private readonly IProfileValidationService _validationService;
+        private readonly IWindowService _windowService;
+        private readonly IProgressDialogService _progressDialogService;
+        private readonly ILogService _log;
 
-        public MainWindowViewModel(IImageAnalysisService imageAnalysisService, IAnalysisExportService analysisExportService, IProfileValidationService validationService)
+        public MainWindowViewModel(
+            IImageAnalysisService imageAnalysisService,
+            IAnalysisExportService analysisExportService,
+            IProfileValidationService validationService,
+            IWindowService windowService,
+            ILogService logService,
+            IProgressDialogService progressDialogService
+            )
         {
             _imageAnalysisService = imageAnalysisService;
             _analysisExportService = analysisExportService;
             _validationService = validationService;
+            _windowService = windowService;
+            _progressDialogService = progressDialogService;
+            _log = logService;
             
             ClosingWindowCommand = new DelegateCommand(OnCloseWindow);
             
@@ -401,8 +417,8 @@ namespace GameSettingsParser.ViewModels
         {
             MarkupTypeDialogViewModel dialogViewModel = new(_parsingProfile);
             MarkupTypeDialog dialog = new MarkupTypeDialog(dialogViewModel);
-
-            if (dialog.ShowDialog() == true)
+            
+            if (_windowService.ShowDialog(dialog) == true)
             {
                 if(!MarkupTypes.Contains(dialogViewModel.MarkupTypeModel))
                     MarkupTypes.Add(dialogViewModel.MarkupTypeModel);
@@ -438,8 +454,9 @@ namespace GameSettingsParser.ViewModels
                 return;
             
             MarkupTypeDialogViewModel dialogViewModel = new(_parsingProfile, SelectedMarkupType);
-            MarkupTypeDialog dialog = new MarkupTypeDialog(dialogViewModel);
-            dialog.ShowDialog();
+            var dialog = new MarkupTypeDialog(dialogViewModel);
+            
+            _windowService.ShowDialog(dialog);
         }
 
         public void ClearAllMarkupInstances()
@@ -456,10 +473,15 @@ namespace GameSettingsParser.ViewModels
         public void TestButton()
         {
         }
-        
+
         private void ParseToFile()
         {
-            var analysisResult = GatherExportResult();
+            _progressDialogService.ExecuteAsync(ParseToFileAsync, new ProgressDialogOptions() { Label = "" });
+        }
+
+        private async Task ParseToFileAsync(CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
+        {
+            var analysisResult = await GatherExportResultAsync(cancellationToken, progressText, progressPercentage);
 
             if (analysisResult is null)
                 return;
@@ -475,24 +497,34 @@ namespace GameSettingsParser.ViewModels
             if (saveFileDialog.ShowDialog() == false)
                 return;
             
-            _analysisExportService.ExportToFile(analysisResult, _parsingProfile, saveFileDialog.FileName);
+            await _analysisExportService.ExportToFileAsync(analysisResult, _parsingProfile, saveFileDialog.FileName, cancellationToken, progressText, progressPercentage);
         }
 
         private void ParseToClipboard()
         {
-            var analysisResult = GatherExportResult();
-            if (analysisResult != null)
-                _analysisExportService.ExportToClipboard(analysisResult, _parsingProfile);
+            _progressDialogService.ExecuteAsync(ParseToClipboardAsync, new ProgressDialogOptions() { Label = "" });
         }
 
-        private async void ParseToWebsite()
+        private async Task ParseToClipboardAsync(CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
-            var analysisResult = GatherExportResult();
+            var analysisResult = await GatherExportResultAsync(cancellationToken, progressText, progressPercentage);
             if (analysisResult != null)
-                await _analysisExportService.ExportToWebsiteAsync(analysisResult, _parsingProfile);
+                await _analysisExportService.ExportToClipboardAsync(analysisResult, _parsingProfile, cancellationToken, progressText, progressPercentage);
         }
 
-        private ImageAnalysisResultModel? GatherExportResult()
+        private void ParseToWebsite()
+        {
+            _progressDialogService.ExecuteAsync(ParseToWebsiteAsync, new ProgressDialogOptions() { Label = "Parsing to website..." });
+        }
+        
+        private async Task ParseToWebsiteAsync(CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
+        {
+            var analysisResult = await GatherExportResultAsync(cancellationToken, progressText, progressPercentage);
+            if (analysisResult != null)
+                await _analysisExportService.ExportToWebsiteAsync(analysisResult, _parsingProfile, cancellationToken, progressText, progressPercentage);
+        }
+
+        private async Task<ImageAnalysisResultModel?> GatherExportResultAsync(CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             var validationResult = _validationService.Validate(_parsingProfile);
             Console.WriteLine(validationResult);
@@ -517,7 +549,7 @@ namespace GameSettingsParser.ViewModels
             
             var imagePaths = openFileDialog.FileNames;
 
-            return _imageAnalysisService.Analyse(_parsingProfile, imagePaths);
+            return await Task.Run(() =>_imageAnalysisService.AnalyseAsync(_parsingProfile, imagePaths, cancellationToken, progressText, progressPercentage), cancellationToken);
         }
 
         private void ExportProject()

@@ -1,4 +1,4 @@
-﻿<Window x:Class="GameSettingsParser.Views.ConfluenceExportDialog"
+﻿<Window x:Class="GameSettingsParser.Views.AnalysisExport.ConfluenceExportDialog"
         x:Name="ConfluenceExportDialogWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"

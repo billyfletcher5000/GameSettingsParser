@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using GameSettingsParser.ViewModels;
 
-namespace GameSettingsParser.Views
+namespace GameSettingsParser.Views.AnalysisExport
 {
     public partial class ConfluenceExportDialog : Window
     {

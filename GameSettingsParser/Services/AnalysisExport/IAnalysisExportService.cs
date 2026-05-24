@@ -11,17 +11,17 @@ namespace GameSettingsParser.Services.AnalysisExport
         public string FileExtension => string.Empty;
         public string FileFilter => string.Empty;
         
-        public void ExportToClipboard(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)
+        public Task ExportToClipboardAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             throw new NotImplementedException();
         }
         
-        public void ExportToFile(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath)
+        public Task ExportToFileAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             throw new NotImplementedException();
         }
         
-        public Task ExportToWebsiteAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)
+        public Task ExportToWebsiteAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             throw new NotImplementedException();
         }
