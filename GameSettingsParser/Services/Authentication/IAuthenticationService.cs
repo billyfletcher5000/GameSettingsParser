@@ -8,6 +8,11 @@
         public required string TokenEndpoint { get; init; } = string.Empty;
         public string? Audience { get; set; } = null;
         public string? Scope { get; set; } = null;
+        
+        public override string ToString()
+        {
+            return $"(ClientId: {ClientId}, ClientSecret: {ClientSecret}, AuthorizationEndpoint: {AuthorizationEndpoint}, TokenEndpoint: {TokenEndpoint}, Audience: {Audience}, Scope: {Scope})";
+        }
     }
     
     public interface IAuthenticationService

@@ -27,6 +27,8 @@ namespace GameSettingsParser.Services.Authentication
         
         public async Task<string?> AuthenticateAsync(AuthenticationOptions options)
         {
+            _log.Debug($"Beginning authentication for options: {options}");
+            
             var port = AuthenticationPort;
             var redirectUri = $"http://localhost:{port}/";
             
@@ -34,6 +36,7 @@ namespace GameSettingsParser.Services.Authentication
 
             if (sessionToken.HasValue && sessionToken.Value.RefreshToken != null)
             {
+                _log.Debug($"Existing token found, attempting to refresh: {sessionToken.Value}");
                 var refreshedTokenModel = await RefreshTokenAsync(options.TokenEndpoint, options.ClientId, options.ClientSecret, redirectUri, sessionToken.Value.RefreshToken);
                 if (refreshedTokenModel != null)
                 {
@@ -64,6 +67,8 @@ namespace GameSettingsParser.Services.Authentication
                        $"&state={state}" +
                        $"&response_type=code" +
                        $"&prompt=consent";
+            
+            _log.Debug($"Performing full authorization with url: {authUrl}");
 
             Process.Start(new ProcessStartInfo
             {
@@ -81,9 +86,11 @@ namespace GameSettingsParser.Services.Authentication
             {
                 await writer.WriteAsync("<html><body><h2>Authentication successful! You can close this tab.</h2></body></html>");
             }
-
+            
             context.Response.Close();
             httpListener.Stop();
+            
+            _log.Debug("Authorization successful!");
             
             if (incomingState != null && incomingState != state)
             {
@@ -107,8 +114,10 @@ namespace GameSettingsParser.Services.Authentication
             return null;
         }
 
-        private static async Task<AuthenticationTokenModel?> ExchangeCodeForTokenJsonAsync(string tokenEndpoint, string clientId, string clientSecret, string code, string redirectUri)
+        private async Task<AuthenticationTokenModel?> ExchangeCodeForTokenJsonAsync(string tokenEndpoint, string clientId, string clientSecret, string code, string redirectUri)
         {
+            _log.Debug($"Attempting to exchange code for token: code: {code}, redirectUri: {redirectUri}, clientId: {clientId}, clientSecret: {clientSecret}, tokenEndpoint: {tokenEndpoint}");
+            
             using var httpClient = new HttpClient();
             var requestBody = new AuthenticationTokenExchangeRequestModel
             {
@@ -134,12 +143,16 @@ namespace GameSettingsParser.Services.Authentication
                 responseStream,
                 JsonOptions.Default);
             
+            _log.Debug($"Token exchange successful: {tokenResponse}");
+            
             return tokenResponse;
         }
         
         
         private async Task<AuthenticationTokenModel?> RefreshTokenAsync(string tokenEndpoint, string clientId, string clientSecret, string redirectUri, string refreshToken)
         {
+            _log.Debug($"Attempting to refresh token: refreshToken: {refreshToken}, redirectUri: {redirectUri}, clientId: {clientId}, clientSecret: {clientSecret}, tokenEndpoint: {tokenEndpoint}");
+            
             using var httpClient = new HttpClient();
             var requestBody = new AuthenticationTokenExchangeRequestModel
             {
@@ -165,6 +178,8 @@ namespace GameSettingsParser.Services.Authentication
             var tokenResponse = await JsonSerializer.DeserializeAsync<AuthenticationTokenModel>(
                 responseStream,
                 JsonOptions.Default);
+            
+            _log.Debug($"Token refresh successful: {tokenResponse}");
             
             return tokenResponse;
         }
