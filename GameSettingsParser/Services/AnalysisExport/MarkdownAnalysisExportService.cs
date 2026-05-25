@@ -20,13 +20,13 @@ namespace GameSettingsParser.Services.AnalysisExport
         
         public Size ThumbnailSize { get; set; } = new Size(96, 54);
         
-        public void ExportToClipboard(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)
+        public void ExportToClipboardAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)
         {
             var markdownOutput = CreateMarkdownOutput(imageAnalysisResult, parsingProfile);
             Clipboard.SetText(markdownOutput);
         }
 
-        public void ExportToFile(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath)
+        public void ExportToFileAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath)
         {
             var markdownOutput = CreateMarkdownOutput(imageAnalysisResult, parsingProfile, true, outputPath);
             File.WriteAllText(outputPath, markdownOutput);

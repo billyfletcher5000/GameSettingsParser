@@ -12,16 +12,18 @@ namespace GameSettingsParser.Services.AnalysisExport
         public string FileExtension => ".txt";
         public string FileFilter => "Text Files (*.txt)|*.txt";
 
-        public void ExportToClipboard(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)
+        public Task ExportToClipboardAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             var output = CreateDebugOutput(imageAnalysisResult, parsingProfile);
             Clipboard.SetText(output);
+            return Task.CompletedTask;
         }
 
-        public void ExportToFile(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath)
+        public Task ExportToFileAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             var output = CreateDebugOutput(imageAnalysisResult, parsingProfile);
             File.WriteAllText(outputPath, output);
+            return Task.CompletedTask;
         }
         
         private string CreateDebugOutput(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)

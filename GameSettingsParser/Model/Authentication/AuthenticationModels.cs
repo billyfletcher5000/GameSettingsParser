@@ -4,6 +4,8 @@ namespace GameSettingsParser.Model.Authentication
 {
     public struct AuthenticationTokenModel
     {
+        private int _expiresIn = -1;
+        
         [JsonPropertyName("access_token")]
         public string AccessToken { get; set; } = string.Empty;
 
@@ -11,10 +13,19 @@ namespace GameSettingsParser.Model.Authentication
         public string TokenType { get; set; } = "Bearer";
 
         [JsonPropertyName("expires_in")]
-        public int? ExpiresIn { get; set; }
+        public int? ExpiresIn 
+        {
+            get => _expiresIn >= 0 ? _expiresIn : null;
+            set
+            {
+                _expiresIn = value ?? -1;
+                if (_expiresIn >= 0)
+                    ExpiresAt = ExpirationTime;
+            } 
+        }
         
         [JsonPropertyName("expires_at")]
-        public int? ExpiresAt { get; set; }
+        public DateTime? ExpiresAt { get; set; }
 
         [JsonPropertyName("refresh_token")]
         public string? RefreshToken { get; set; }
@@ -42,6 +53,11 @@ namespace GameSettingsParser.Model.Authentication
 
         public AuthenticationTokenModel()
         {
+        }
+
+        public override string ToString()
+        {
+            return $"Access Token: {AccessToken}\r\n\tExpires At: {ExpirationTime}\r\n\tExpires In: {ExpiresIn}\r\n\tRefresh Token: {RefreshToken}\r\n\tScope: {Scope}";
         }
     }
     
