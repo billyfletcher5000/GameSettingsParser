@@ -1,8 +1,16 @@
 ﻿using System.Windows;
 using GameSettingsParser.Services.AnalysisExport;
+using GameSettingsParser.Services.Authentication;
+using GameSettingsParser.Services.Confluence;
 using GameSettingsParser.Services.ImageAnalysis;
+using GameSettingsParser.Services.KeyVault;
+using GameSettingsParser.Services.Logging;
+using GameSettingsParser.Services.Progress;
+using GameSettingsParser.Services.SessionStore;
 using GameSettingsParser.Services.TextComparison;
+using GameSettingsParser.Services.UserState;
 using GameSettingsParser.Services.Validation;
+using GameSettingsParser.Services.Windows;
 using GameSettingsParser.Settings;
 using GameSettingsParser.ViewModels;
 using Prism.Unity;
@@ -23,10 +31,18 @@ public partial class App : PrismApplication
     protected override void RegisterTypes(IContainerRegistry containerRegistry)
     {
         containerRegistry.RegisterForNavigation<MainWindow, MainWindowViewModel>();
-        containerRegistry.Register<IAnalysisExportService, MarkdownAnalysisExportService>();
+        containerRegistry.Register<ILogService, ConsoleLogService>();
+        containerRegistry.Register<IAnalysisExportService, ConfluenceAnalysisExportService>();
         containerRegistry.Register<IImageAnalysisService, TesseractImageAnalysisService>();
         containerRegistry.Register<ITextComparisonService, CombinedTextComparisonService>();
         containerRegistry.Register<IProfileValidationService, BasicProfileValidationService>();
+        containerRegistry.Register<IAuthenticationService, OAuth2AuthenticationService>();
+        containerRegistry.Register<IUserStateService, BasicUserStateService>();
+        containerRegistry.Register<IKeyVaultService, EnvironmentVariableVaultService>();
+        containerRegistry.Register<ISessionStoreService, AppSettingsSessionStoreService>();
+        containerRegistry.Register<IWindowService, BasicWindowService>();
+        containerRegistry.Register<IProgressDialogService, ProgressDialogService>();
+        containerRegistry.Register<ConfluenceApiService>();
     }
 
     protected override Window CreateShell()

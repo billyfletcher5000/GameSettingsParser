@@ -17,19 +17,21 @@ namespace GameSettingsParser.Services.AnalysisExport
         public string FileExtension => ".html";
         public string FileFilter => "HTML Files (*.html)|*.html";
 
-        public void ExportToClipboard(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)
+        public Task ExportToClipboardAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             var output = ExportToHTMLString(imageAnalysisResult, parsingProfile, true);
             Clipboard.SetText(output);
+            return Task.CompletedTask;
         }
         
-        public void ExportToFile(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath)
+        public Task ExportToFileAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             var result = MessageBox.Show("Copy images to same folder as HTML file?", "Copy Images", MessageBoxButton.YesNo);
             var export = ExportToHTMLString(imageAnalysisResult, parsingProfile, false, result == MessageBoxResult.Yes, outputPath);
             var output = $"{CreateHTMLHeader()}<body>\n\n{export}\n\n\t</body>\n</html>";
             File.WriteAllText(outputPath, output);
             File.Copy(StylesheetPath, Path.Combine(Path.GetDirectoryName(outputPath)!, Path.GetFileName(StylesheetPath)), true);
+            return Task.CompletedTask;
         }
 
         private string CreateHTMLHeader()

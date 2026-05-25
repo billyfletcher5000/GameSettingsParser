@@ -42,29 +42,50 @@ namespace GameSettingsParser.Services.ImageAnalysis
             _engine.SetVariable("debug_file", "NUL");
         }
         
-        public ImageAnalysisResultModel Analyse(ParsingProfileModel parsingProfile, string[] imagePathsToAnalyse)
+        public async Task<ImageAnalysisResultModel?> AnalyseAsync(ParsingProfileModel parsingProfile, string[] imagePathsToAnalyse, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             var imageAnalysisResult = new ImageAnalysisResultModel();
             
             var dynamicMarkupInstanceSets = new Dictionary<string, DynamicMarkupInstanceSet>();
-            foreach (var markupType in parsingProfile.MarkupTypes.Where(type => type.IsDynamic))
+            var dynamicMarkupTypes = parsingProfile.MarkupTypes.Where(type => type.IsDynamic).ToList();
+            var numDynamicMarkupTypes = dynamicMarkupTypes.Count;
+            var markupTypeIndex = 0;
+            foreach (var markupType in dynamicMarkupTypes)
             {
-                if (markupType.IsDynamic)
-                {
-                    // First we process dynamic instances, this is because other markup types can be positioned relatively
-                    var dynamicMarkupInstances = ProcessDynamicMarkupInstances(imageAnalysisResult, parsingProfile, markupType, imagePathsToAnalyse);
-                    if(dynamicMarkupInstances.Count > 0)
-                        dynamicMarkupInstanceSets.Add(markupType.Name, dynamicMarkupInstances);
-                }
+                progressText.Report($"Processing dynamic markup type \"{markupType.Name}\" ({markupTypeIndex + 1}/{numDynamicMarkupTypes})");
+                progressPercentage.Report((double)markupTypeIndex / numDynamicMarkupTypes);
+                // First we process dynamic instances, this is because other markup types can be positioned relatively
+                var dynamicMarkupInstances = ProcessDynamicMarkupInstances(imageAnalysisResult, parsingProfile, markupType, imagePathsToAnalyse);
+                if(dynamicMarkupInstances.Count > 0)
+                    dynamicMarkupInstanceSets.Add(markupType.Name, dynamicMarkupInstances);
+                
+                markupTypeIndex++;
             }
+
+            progressText.Report($"Dynamic markup type processing complete");
+            progressPercentage.Report(1.0);
             
-            foreach (var markupType in parsingProfile.MarkupTypes.Where(type => !type.IsDynamic))
+            var nonDynamicMarkupTypes = parsingProfile.MarkupTypes.Where(type => !type.IsDynamic).ToList();
+            var numNonDynamicMarkupTypes = nonDynamicMarkupTypes.Count;
+            markupTypeIndex = 0;
+            var progressPercentageIncrement = 1.0 / numNonDynamicMarkupTypes;
+            
+            foreach (var markupType in nonDynamicMarkupTypes)
             {
+                progressText.Report($"Processing non-dynamic markup type \"{markupType.Name}\" ({markupTypeIndex + 1}/{numDynamicMarkupTypes})");
+                progressPercentage.Report(markupTypeIndex * progressPercentageIncrement);
+                
                 if (markupType.IsSearchArea)
                     continue;
 
+                var numImagePaths = imagePathsToAnalyse.Length;
+                var imageIndex = 0;
+                
                 foreach (var imagePath in imagePathsToAnalyse)
                 {
+                    progressText.Report($"Processing non-dynamic markup type \"{markupType.Name}\" ({markupTypeIndex + 1}/{numDynamicMarkupTypes})\nProcessing image: {Path.GetFileName(imagePath)}");
+                    progressPercentage.Report(markupTypeIndex * progressPercentageIncrement + ((imageIndex / (double)numImagePaths) * progressPercentageIncrement));
+                    
                     Rectangle rectangle;
                     if (markupType.IsPositionedRelativeToOther)
                     {
@@ -104,7 +125,7 @@ namespace GameSettingsParser.Services.ImageAnalysis
                                 croppedImage.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/{imageFilename}_{markupType.Name}.png", ImageFormat.Png);
                             }
 
-                            ImageAnalysisResultModel.ProcessedImage processedImage = GetOrCreateSetting(imageAnalysisResult, imagePath);
+                            var processedImage = GetOrCreateSetting(imageAnalysisResult, imagePath);
                     
                             if(!processedImage.MarkupTypeToValues.ContainsKey(markupType))
                                 processedImage.MarkupTypeToValues.Add(markupType, new List<string>());
@@ -112,9 +133,17 @@ namespace GameSettingsParser.Services.ImageAnalysis
                             processedImage.MarkupTypeToValues[markupType].Add(SanitizeOCRText(text));
                         }
                     }
-                    
+
+                    await Task.Yield();
+                    imageIndex++;
                 }
+                
+                markupTypeIndex++;
             }
+            
+            
+            progressText.Report($"Tesseract analysis complete");
+            progressPercentage.Report(1.0);
         
             return imageAnalysisResult;
         }
@@ -423,5 +452,7 @@ namespace GameSettingsParser.Services.ImageAnalysis
 
         [GeneratedRegex(@"\s+|[_<>\[\]|]+")]
         private static partial Regex MyRegex();
+
+
     }
 }

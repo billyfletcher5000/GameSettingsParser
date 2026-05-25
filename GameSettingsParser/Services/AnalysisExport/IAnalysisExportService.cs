@@ -4,13 +4,26 @@ namespace GameSettingsParser.Services.AnalysisExport
 {
     public interface IAnalysisExportService
     {
-        public bool SupportsExportToFile { get; }
-        public bool SupportsExportToClipboard { get; }
+        public bool SupportsExportToFile => false;
+        public bool SupportsExportToClipboard => false;
+        public bool SupportsExportToWebsite => false;
         
-        public string FileExtension { get; }
-        public string FileFilter { get; }
+        public string FileExtension => string.Empty;
+        public string FileFilter => string.Empty;
         
-        public void ExportToClipboard(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile);
-        public void ExportToFile(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath);
+        public Task ExportToClipboardAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
+        {
+            throw new NotImplementedException();
+        }
+        
+        public Task ExportToFileAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
+        {
+            throw new NotImplementedException();
+        }
+        
+        public Task ExportToWebsiteAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
