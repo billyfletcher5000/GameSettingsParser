@@ -1,10 +1,10 @@
 ﻿using System.Windows;
 
-namespace GameSettingsParser.Views
+namespace GameSettingsParser.Views.Configuration
 {
-    public partial class AnalysisConfigurationDialog : Window
+    public partial class ConfigurationDialog : Window
     {
-        public AnalysisConfigurationDialog()
+        public ConfigurationDialog()
         {
             InitializeComponent();
         }
@@ -15,6 +15,11 @@ namespace GameSettingsParser.Views
         }
 
         private void CancelButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void ApplyButton_OnClick(object sender, RoutedEventArgs e)
         {
             throw new NotImplementedException();
         }

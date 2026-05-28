@@ -1,20 +1,19 @@
 ﻿using System.Drawing;
-using System.Windows.Controls;
 using GameSettingsParser.Attributes;
-using GameSettingsParser.Controls.TextComparison;
 using GameSettingsParser.Model;
-using GameSettingsParser.Model.TextComparisonConfiguration;
+using GameSettingsParser.Model.Configuration;
+using GameSettingsParser.Model.Configuration.TextComparison;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 
 namespace GameSettingsParser.Services.TextComparison
 {
-    [RegionNavigationKey(nameof(BasicConfigurationControl))]
+    [SwitchableService(nameof(ColorSimilarityTextComparisonConfigurationModel), "Color Similarity")]
     public class ColorSimilarityTextComparisonService : ITextComparisonService
     {
         private ColorSimilarityTextComparisonConfigurationModel? _thisConfiguration;
 
-        public ITextComparisonConfigurationModel? Configuration
+        public IConfigurationModel? Configuration
         {
             get => ThisConfiguration;
             set => ThisConfiguration = value as ColorSimilarityTextComparisonConfigurationModel;
@@ -25,8 +24,6 @@ namespace GameSettingsParser.Services.TextComparison
             get => _thisConfiguration;
             set => _thisConfiguration = value;
         }
-
-        public string RegionNavigationKey => nameof(BasicConfigurationControl);
 
         public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB, ParsingProfileModel parsingProfile)
         {

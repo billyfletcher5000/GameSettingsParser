@@ -1,10 +1,12 @@
 ﻿using System.IO;
 using System.Text;
 using System.Windows;
+using GameSettingsParser.Attributes;
 using GameSettingsParser.Model;
 
 namespace GameSettingsParser.Services.AnalysisExport
 {
+    [SwitchableService(nameof(DebugAnalysisExportService), "Debug/Console")]
     public class DebugAnalysisExportService : IAnalysisExportService
     {
         public bool SupportsExportToFile => true;

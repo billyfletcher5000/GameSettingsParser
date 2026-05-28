@@ -1,7 +1,9 @@
 ﻿using System.Collections.ObjectModel;
 using GameSettingsParser.Services.TextComparison;
+using GameSettingsParser.ViewModels.Configuration.TextComparison;
+using GameSettingsParser.Views.Configuration.TextComparison;
 
-namespace GameSettingsParser.Model.TextComparisonConfiguration
+namespace GameSettingsParser.Model.Configuration.TextComparison
 {
     public class CombinedTextComparisonConfigurationModel : BasicTextComparisonConfigurationModel
     {
@@ -17,8 +19,9 @@ namespace GameSettingsParser.Model.TextComparisonConfiguration
             }
         }
         
-        public ObservableCollection<Configuration>? Configurations { get; set; } = [];
-        
+        public ObservableCollection<Configuration> Configurations { get; set; } = [];
+
+        public override Type ViewModelType => typeof(CombinedTextComparisonConfigurationViewModel);
         public override Type ServiceType => typeof(CombinedTextComparisonService);
         
         public override string DisplayName => "Weighted Combination";
@@ -27,5 +30,16 @@ namespace GameSettingsParser.Model.TextComparisonConfiguration
         {
             Configurations.CollectionChanged += (sender, args) => HasChanges = true;
         }
+        
+        public override void ApplyChanges()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void ResetChanges()
+        {
+            throw new NotImplementedException();
+        }
+
     }
 }

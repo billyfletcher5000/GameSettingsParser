@@ -1,25 +1,22 @@
 ﻿using System.Collections;
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.ComponentModel;
 using System.Drawing;
-using System.Windows.Controls;
 using GameSettingsParser.Attributes;
 using GameSettingsParser.Controls.TextComparison;
 using GameSettingsParser.Model;
-using GameSettingsParser.Model.TextComparisonConfiguration;
-using GameSettingsParser.Settings;
+using GameSettingsParser.Model.Configuration;
+using GameSettingsParser.Model.Configuration.TextComparison;
 
 namespace GameSettingsParser.Services.TextComparison
 {
-    [RegionNavigationKey(nameof(CombinedConfigurationControl))]
+    [SwitchableService(nameof(CombinedTextComparisonConfigurationModel), "Combined")]
     public class CombinedTextComparisonService : ITextComparisonService
     {
         private readonly List<ITextComparisonService> _services = [];
 
         private CombinedTextComparisonConfigurationModel? _thisConfiguration;
 
-        public ITextComparisonConfigurationModel? Configuration
+        public IConfigurationModel? Configuration
         {
             get => ThisConfiguration;
             set => ThisConfiguration = value as CombinedTextComparisonConfigurationModel;

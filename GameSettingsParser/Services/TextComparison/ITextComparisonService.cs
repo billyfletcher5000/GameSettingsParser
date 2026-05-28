@@ -1,14 +1,13 @@
 ﻿
 using System.Drawing;
-using System.Windows.Controls;
 using GameSettingsParser.Model;
-using GameSettingsParser.Model.TextComparisonConfiguration;
+using GameSettingsParser.Model.Configuration;
 
 namespace GameSettingsParser.Services.TextComparison
 {
     public interface ITextComparisonService
     {
-        public ITextComparisonConfigurationModel? Configuration { get; set; }
+        public IConfigurationModel? Configuration { get; set; }
         public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB, ParsingProfileModel parsingProfile);
     }
 

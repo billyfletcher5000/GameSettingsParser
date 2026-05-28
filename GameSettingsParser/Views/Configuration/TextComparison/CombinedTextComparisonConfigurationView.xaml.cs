@@ -2,9 +2,9 @@
 
 namespace GameSettingsParser.Controls.TextComparison
 {
-    public partial class CombinedConfigurationControl : UserControl
+    public partial class CombinedTextComparisonConfigurationView : UserControl
     {
-        public CombinedConfigurationControl()
+        public CombinedTextComparisonConfigurationView()
         {
             InitializeComponent();
         }

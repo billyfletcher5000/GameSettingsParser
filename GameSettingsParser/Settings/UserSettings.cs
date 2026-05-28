@@ -1,14 +1,13 @@
 ﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
-using GameSettingsParser.Model;
-using GameSettingsParser.Model.TextComparisonConfiguration;
-using GameSettingsParser.Services.TextComparison;
+using GameSettingsParser.Model.Configuration;
+using GameSettingsParser.Services.Configuration;
 using Newtonsoft.Json;
 
 namespace GameSettingsParser.Settings;
 
-public class UserSettings
+public class UserSettings : IConfigurationSource
 {
     public static UserSettings Instance { get; private set; } = new();
     
@@ -24,7 +23,7 @@ public class UserSettings
     
     public bool SaveAnalysisTemporaryImages { get; set; } = false;
     
-    public ITextComparisonConfigurationModel DefaultTextComparisonConfiguration { get; set; } = new CombinedTextComparisonConfigurationModel();
+    public ObservableCollection<IConfigurationModel> Configurations { get; set; } = new();
 
     public struct WindowSettings
     {

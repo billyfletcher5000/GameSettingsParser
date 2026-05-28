@@ -2,11 +2,13 @@
 using System.IO;
 using System.Text;
 using System.Windows;
+using GameSettingsParser.Attributes;
 using GameSettingsParser.Model;
 using GameSettingsParser.Utility;
 
 namespace GameSettingsParser.Services.AnalysisExport
 {
+    [SwitchableService(nameof(HTMLAnalysisExportService), "HTML")]
     public class HTMLAnalysisExportService : IAnalysisExportService
     {
         private const string StylesheetPath = "html_export/styles.css";

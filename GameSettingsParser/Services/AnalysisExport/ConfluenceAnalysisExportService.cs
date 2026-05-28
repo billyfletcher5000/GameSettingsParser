@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using GameSettingsParser.Attributes;
 using GameSettingsParser.Model;
 using GameSettingsParser.Model.Atlassian;
 using GameSettingsParser.Services.Authentication;
@@ -15,6 +16,7 @@ using GameSettingsParser.Views.AnalysisExport;
 
 namespace GameSettingsParser.Services.AnalysisExport
 {
+    [SwitchableService(nameof(ConfluenceAnalysisExportService), "Confluence")]
     public class ConfluenceAnalysisExportService : IAnalysisExportService
     {
         private const string Audience = "api.atlassian.com";

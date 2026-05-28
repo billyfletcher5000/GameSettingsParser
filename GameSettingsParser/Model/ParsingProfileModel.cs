@@ -1,23 +1,23 @@
 ﻿using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using GameSettingsParser.Model.TextComparisonConfiguration;
+using GameSettingsParser.Model.Configuration;
+using GameSettingsParser.Services.Configuration;
 using GameSettingsParser.Utility;
 using Newtonsoft.Json;
 
 namespace GameSettingsParser.Model
 {
-    public class ParsingProfileModel
+    public class ParsingProfileModel : IConfigurationSource
     {
         private bool _hasSelfChanges = false;
         private double _minimumDynamicComparisonConfidence = 0.0;
         private int _wordGapThreshold = 10;
-        private ITextComparisonConfigurationModel? _textComparisonConfiguration;
 
         public string Name { get; set; } = "Untitled";
         public ObservableCollection<MarkupTypeModel> MarkupTypes { get; } = [];
         public ObservableCollection<ImageModel> Images { get; } = [];
         public ObservableCollection<ImageInstanceModel> ImageInstances { get; } = [];
+        public ObservableCollection<IConfigurationModel> Configurations { get; } = [];
         
 
         /// <summary>
@@ -50,19 +50,6 @@ namespace GameSettingsParser.Model
             }
         }
 
-        public ITextComparisonConfigurationModel? TextComparisonConfiguration
-        {
-            get => _textComparisonConfiguration;
-            set
-            {
-                if (_textComparisonConfiguration != value)
-                {
-                    _textComparisonConfiguration = value;
-                    _hasSelfChanges = true;
-                }
-            }
-        }
-
         [JsonIgnore]
         public bool HasChanges 
         {
@@ -71,7 +58,7 @@ namespace GameSettingsParser.Model
                 if (_hasSelfChanges) 
                     return true;
 
-                if (_textComparisonConfiguration is { HasChanges: true })
+                if (Configurations.Any(c => c.HasChanges))
                     return true;
                 
                 foreach (var imageModel in Images)
@@ -113,6 +100,9 @@ namespace GameSettingsParser.Model
                     
                     foreach (var imageInstanceModel in ImageInstances)
                         imageInstanceModel.HasChanges = false;
+
+                    foreach (var configurationModel in Configurations)
+                        configurationModel.HasChanges = false;
                 }
             }
         } 

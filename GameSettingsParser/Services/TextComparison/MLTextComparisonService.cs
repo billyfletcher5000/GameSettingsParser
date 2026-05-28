@@ -1,16 +1,13 @@
 ﻿using System.Drawing;
-using System.Windows.Controls;
-using GameSettingsParser.Attributes;
-using GameSettingsParser.Controls.TextComparison;
 using GameSettingsParser.Model;
-using GameSettingsParser.Model.TextComparisonConfiguration;
+using GameSettingsParser.Model.Configuration;
+using GameSettingsParser.Model.Configuration.TextComparison;
 using GameSettingsParser.Utility;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace GameSettingsParser.Services.TextComparison
 {
-    [RegionNavigationKey(nameof(BasicConfigurationControl))]
     public abstract class MLTextComparisonService : ITextComparisonService
     {
         protected abstract string ModelPath { get; }
@@ -20,7 +17,7 @@ namespace GameSettingsParser.Services.TextComparison
         
         private BasicTextComparisonConfigurationModel? _thisConfiguration;
 
-        public ITextComparisonConfigurationModel? Configuration
+        public IConfigurationModel? Configuration
         {
             get => ThisConfiguration;
             set => ThisConfiguration = value as BasicTextComparisonConfigurationModel;

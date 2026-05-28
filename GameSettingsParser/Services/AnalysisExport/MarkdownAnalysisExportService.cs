@@ -2,15 +2,16 @@
 using System.IO;
 using System.Text;
 using System.Windows;
+using GameSettingsParser.Attributes;
 using GameSettingsParser.Model;
 using GameSettingsParser.Utility;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Size = SixLabors.ImageSharp.Size;
 
 namespace GameSettingsParser.Services.AnalysisExport
 {
+    [SwitchableService(nameof(MarkdownAnalysisExportService), "Markdown")]
     public class MarkdownAnalysisExportService : IAnalysisExportService
     {
         public bool SupportsExportToFile => true;

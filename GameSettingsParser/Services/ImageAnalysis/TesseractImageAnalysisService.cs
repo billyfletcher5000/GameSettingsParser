@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text.RegularExpressions;
 using GameSettingsParser.Model;
+using GameSettingsParser.Services.Logging;
 using GameSettingsParser.Services.TextComparison;
 using GameSettingsParser.Settings;
 using Tesseract;
@@ -26,9 +27,11 @@ namespace GameSettingsParser.Services.ImageAnalysis
         }
         
         private readonly TesseractEngine _engine;
+        private readonly ILogService _log;
 
-        public TesseractImageAnalysisService()
+        public TesseractImageAnalysisService(ILogService logService)
         {
+            _log = logService;
             _engine = new TesseractEngine(@"./TesseractData", "eng", EngineMode.Default);
             
             /* Disable debug output, it prints an "Empty Page!!" error when we test regions that don't have text in them,
@@ -195,7 +198,6 @@ namespace GameSettingsParser.Services.ImageAnalysis
         /// <exception cref="Exception">Throws when search areas are incorrectly set up or validated</exception>
         private DynamicMarkupInstanceSet ProcessDynamicMarkupInstances(ImageAnalysisResultModel resultModel, ParsingProfileModel parsingProfile, MarkupTypeModel markupType, string[] imagePaths)
         {
-            var highDebugVerbosity = UserSettings.Instance.HighDebugVerbosity;
             var saveTempImages = UserSettings.Instance.SaveAnalysisTemporaryImages;
             
             var dynamicMarkupInstances = new DynamicMarkupInstanceSet();
@@ -277,8 +279,7 @@ namespace GameSettingsParser.Services.ImageAnalysis
                                     
                                     var lineText = iterator.GetText(PageIteratorLevel.TextLine);
                                     
-                                    if(highDebugVerbosity)
-                                        Console.WriteLine($"Line: {lineText}");
+                                    _log.Debug($"Line: {lineText}");
                                     
                                     var wordText = iterator.GetText(PageIteratorLevel.Word);
 
@@ -305,8 +306,7 @@ namespace GameSettingsParser.Services.ImageAnalysis
                                             isHighestConfidenceWordSequence = true;
                                         }
                                         
-                                        if(highDebugVerbosity)
-                                            Console.WriteLine($"Text: {wordText}, Confidence: {newConfidence}, Best Match: {bestMatchText}, Best Match Confidence: {confidence}");
+                                        _log.Debug($"Text: {wordText}, Confidence: {newConfidence}, Best Match: {bestMatchText}, Best Match Confidence: {confidence}");
                                     }
 
                                     // Check the word sequence hasn't ended, if it has, condense the last sequence if it's likely our target

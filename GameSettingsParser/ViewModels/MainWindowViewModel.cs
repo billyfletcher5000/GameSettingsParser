@@ -6,7 +6,9 @@ using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
 using GameSettingsParser.Model;
+using GameSettingsParser.ServiceProviders.AnalysisExport;
 using GameSettingsParser.Services.AnalysisExport;
+using GameSettingsParser.Services.Configuration;
 using GameSettingsParser.Services.ImageAnalysis;
 using GameSettingsParser.Services.Logging;
 using GameSettingsParser.Services.Progress;
@@ -111,6 +113,7 @@ namespace GameSettingsParser.ViewModels
         public ICommand FileSaveCommand { get; }
         public ICommand FileSaveAsCommand { get; }
         public ICommand FileExportCommand { get; }
+        public ICommand FilePreferencesCommand { get; }
         public ICommand FileExitCommand { get; }
 
         public ICommand AddImageCommand { get; }
@@ -133,27 +136,32 @@ namespace GameSettingsParser.ViewModels
         private string _currentProfileFilePath = string.Empty;
         
         private readonly IImageAnalysisService _imageAnalysisService;
-        private readonly IAnalysisExportService _analysisExportService;
+        private readonly IAnalysisExportServiceProvider _analysisExportServiceProvider;
         private readonly IProfileValidationService _validationService;
         private readonly IWindowService _windowService;
         private readonly IProgressDialogService _progressDialogService;
+        private readonly IConfigurationService _configurationService;
         private readonly ILogService _log;
 
         public MainWindowViewModel(
             IImageAnalysisService imageAnalysisService,
-            IAnalysisExportService analysisExportService,
+            IAnalysisExportServiceProvider analysisExportServiceProvider,
             IProfileValidationService validationService,
             IWindowService windowService,
-            ILogService logService,
-            IProgressDialogService progressDialogService
+            IProgressDialogService progressDialogService,
+            IConfigurationService configurationService,
+            ILogService logService
             )
         {
             _imageAnalysisService = imageAnalysisService;
-            _analysisExportService = analysisExportService;
+            _analysisExportServiceProvider = analysisExportServiceProvider;
             _validationService = validationService;
             _windowService = windowService;
             _progressDialogService = progressDialogService;
+            _configurationService = configurationService;
             _log = logService;
+
+            _analysisExportServiceProvider.CurrentChanged += service => RaiseCommandsCanExecuteChanged();
             
             ClosingWindowCommand = new DelegateCommand(OnCloseWindow);
             
@@ -162,6 +170,7 @@ namespace GameSettingsParser.ViewModels
             FileSaveCommand = new DelegateCommand(OnFileSave);
             FileSaveAsCommand = new DelegateCommand(OnFileSaveAs);
             FileExportCommand = new DelegateCommand(ExportProject);
+            FilePreferencesCommand = new DelegateCommand(OpenSettings);
             FileExitCommand = new DelegateCommand(OnFileExit);
             
             AddImageCommand = new DelegateCommand(OnAddImage);
@@ -175,9 +184,9 @@ namespace GameSettingsParser.ViewModels
             ClearTypeInstancesCommand = new DelegateCommand(ClearCurrentTypeMarkupInstances, () => HasSelectedImage && HasSelectedMarkupType && SelectedImageInstance!.MarkupInstances.Count(instance => instance.Type == SelectedMarkupType) > 0);
             ClearAllInstancesCommand = new DelegateCommand(ClearAllMarkupInstances, () => HasSelectedImage && HasSelectedMarkupType && SelectedImageInstance!.MarkupInstances.Count > 0);
             
-            ParseToFileCommand = new DelegateCommand(ParseToFile, () => CanGatherAndExport() && _analysisExportService.SupportsExportToFile);
-            ParseToClipboardCommand = new DelegateCommand(ParseToClipboard, () => CanGatherAndExport() && _analysisExportService.SupportsExportToClipboard);
-            ParseToWebsiteCommand = new DelegateCommand(ParseToWebsite, () => CanGatherAndExport() && _analysisExportService.SupportsExportToWebsite);
+            ParseToFileCommand = new DelegateCommand(ParseToFile, () => CanGatherAndExport() && _analysisExportServiceProvider.Current.SupportsExportToFile);
+            ParseToClipboardCommand = new DelegateCommand(ParseToClipboard, () => CanGatherAndExport() && _analysisExportServiceProvider.Current.SupportsExportToClipboard);
+            ParseToWebsiteCommand = new DelegateCommand(ParseToWebsite, () => CanGatherAndExport() && _analysisExportServiceProvider.Current.SupportsExportToWebsite);
 
             // Debugging
             TestButtonCommand = new DelegateCommand(TestButton);
@@ -258,12 +267,17 @@ namespace GameSettingsParser.ViewModels
         [MemberNotNull(nameof(_parsingProfile))]
         private void SetNewParsingProfile(ParsingProfileModel profile)
         {
+            if(_parsingProfile != null)
+                _configurationService.UnregisterConfigurationSource(_parsingProfile);
+            
             _parsingProfile = profile;
+            _configurationService.RegisterConfigurationSource(_parsingProfile, ConfigurationScope.ProfileSettings);
             
             SelectedImage = _parsingProfile.Images.FirstOrDefault();
             SelectedMarkupType = _parsingProfile.MarkupTypes.FirstOrDefault();
             WordGapThreshold = _parsingProfile.WordGapThreshold;
             MinimumDynamicComparisonConfidence = _parsingProfile.MinimumDynamicComparisonConfidence;
+            
             RaiseProfilePropertiesChanged();
             RaiseCommandsCanExecuteChanged();
         }
@@ -489,15 +503,15 @@ namespace GameSettingsParser.ViewModels
             var saveFileDialog = new SaveFileDialog()
             {
                 Title = "Save Exported Data",
-                Filter = _analysisExportService.FileFilter,
-                DefaultExt = _analysisExportService.FileExtension,
+                Filter = _analysisExportServiceProvider.Current.FileFilter,
+                DefaultExt = _analysisExportServiceProvider.Current.FileExtension,
                 FileName = "Exported Data"
             };
 
             if (saveFileDialog.ShowDialog() == false)
                 return;
             
-            await _analysisExportService.ExportToFileAsync(analysisResult, _parsingProfile, saveFileDialog.FileName, cancellationToken, progressText, progressPercentage);
+            await _analysisExportServiceProvider.Current.ExportToFileAsync(analysisResult, _parsingProfile, saveFileDialog.FileName, cancellationToken, progressText, progressPercentage);
         }
 
         private void ParseToClipboard()
@@ -509,7 +523,7 @@ namespace GameSettingsParser.ViewModels
         {
             var analysisResult = await GatherExportResultAsync(cancellationToken, progressText, progressPercentage);
             if (analysisResult != null)
-                await _analysisExportService.ExportToClipboardAsync(analysisResult, _parsingProfile, cancellationToken, progressText, progressPercentage);
+                await _analysisExportServiceProvider.Current.ExportToClipboardAsync(analysisResult, _parsingProfile, cancellationToken, progressText, progressPercentage);
         }
 
         private void ParseToWebsite()
@@ -521,7 +535,7 @@ namespace GameSettingsParser.ViewModels
         {
             var analysisResult = await GatherExportResultAsync(cancellationToken, progressText, progressPercentage);
             if (analysisResult != null)
-                await _analysisExportService.ExportToWebsiteAsync(analysisResult, _parsingProfile, cancellationToken, progressText, progressPercentage);
+                await _analysisExportServiceProvider.Current.ExportToWebsiteAsync(analysisResult, _parsingProfile, cancellationToken, progressText, progressPercentage);
         }
 
         private async Task<ImageAnalysisResultModel?> GatherExportResultAsync(CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
@@ -567,6 +581,11 @@ namespace GameSettingsParser.ViewModels
                 return;
             
             ParsingProfileModel.ExportToPath(_parsingProfile, saveFileDialog.FileName, _currentProfileFilePath);
+        }
+
+        public void OpenSettings()
+        {
+            
         }
         
         private void OnMarkupInstancesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs args)
