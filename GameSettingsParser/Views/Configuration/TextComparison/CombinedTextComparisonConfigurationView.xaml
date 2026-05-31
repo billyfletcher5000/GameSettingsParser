@@ -18,7 +18,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         
-        <ListBox Grid.Row="0" MinHeight="120" ItemsSource="{Binding Path=Configurations}" SelectedItem="{Binding Path=SelectedConfiguration, Mode=TwoWay}">
+        <ListBox Grid.Row="0" MinHeight="120" ItemsSource="{Binding Path=ChildConfigurations}" SelectedItem="{Binding Path=SelectedConfiguration, Mode=TwoWay}">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Grid>

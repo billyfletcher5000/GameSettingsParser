@@ -1,33 +1,45 @@
-﻿using GameSettingsParser.Model.Configuration.TextComparison;
-using GameSettingsParser.Services.TextComparison;
+﻿using GameSettingsParser.Model.Configuration;
+using GameSettingsParser.Model.Configuration.TextComparison;
+using GameSettingsParser.Views.Configuration.TextComparison;
 
 namespace GameSettingsParser.ViewModels.Configuration.TextComparison
 {
     public abstract class BasicTextComparisonConfigurationViewModel : BindableBase, IConfigurationViewModel
     {
-        private BasicTextComparisonConfigurationModel? _basicConfigModel;
-        public BasicTextComparisonConfigurationModel? BasicConfigModel
-        {
-            get => _basicConfigModel;
-            set
-            {
-                if (SetProperty(ref _basicConfigModel, value))
-                {
-                    RaisePropertyChanged(nameof(MinimumConfidence));
-                }
-            }
-        }
+        public virtual IConfigurationModel? Configuration { get; set; }
+        
+        public virtual string DisplayName => Configuration?.DisplayName ?? "Text Comparison";
+        
+        public BasicTextComparisonConfigurationModel? ThisConfiguration => Configuration as BasicTextComparisonConfigurationModel;
 
+        private float _minimumConfidence = 0.0f;
         public float MinimumConfidence
         {
-            get => BasicConfigModel?.MinimumConfidence ?? 0.0f;
-            set
-            {
-                if (BasicConfigModel != null) 
-                    BasicConfigModel.MinimumConfidence = value;
-            }
+            get => _minimumConfidence;
+            set => SetProperty(ref _minimumConfidence, value);
         }
 
-        public abstract Type ViewType { get; }
+        public virtual Type ViewType => typeof(BasicTextComparisonConfigurationView);
+        
+        public virtual void ApplyChanges()
+        {
+            if (ThisConfiguration == null)
+                return;
+            
+            ThisConfiguration.MinimumConfidence = MinimumConfidence;
+        }
+
+        public virtual void ResetChanges()
+        {
+            MinimumConfidence = ThisConfiguration?.MinimumConfidence ?? 0.0f;
+        }
+
+        public virtual bool CheckForChanges()
+        {
+            if (ThisConfiguration == null)
+                return false;
+            
+            return Math.Abs(MinimumConfidence - ThisConfiguration.MinimumConfidence) > float.Epsilon;
+        }
     }
 }

@@ -2,9 +2,9 @@
 
 namespace GameSettingsParser.Views.Configuration.TextComparison
 {
-    public partial class GoogleViTTextComparisonConfigurationView : UserControl
+    public partial class BasicTextComparisonConfigurationView : UserControl
     {
-        public GoogleViTTextComparisonConfigurationView()
+        public BasicTextComparisonConfigurationView()
         {
             InitializeComponent();
         }

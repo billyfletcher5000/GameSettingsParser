@@ -8,6 +8,7 @@ namespace GameSettingsParser.Services.TextComparison
     public interface ITextComparisonService
     {
         public IConfigurationModel? Configuration { get; set; }
+        public Type ConfigurationType { get; }
         public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB, ParsingProfileModel parsingProfile);
     }
 

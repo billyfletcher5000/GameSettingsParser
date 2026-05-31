@@ -4,6 +4,6 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
 {
     public class ColorSimilarityConfigurationViewModel : BasicTextComparisonConfigurationViewModel
     {
-        public override Type ViewType => typeof(ColorSimiliarityTextComparisonConfigurationView);
+        public override string DisplayName => ThisConfiguration?.DisplayName ?? "Color Similarity";
     }
 }

@@ -1,4 +1,5 @@
 ﻿using GameSettingsParser.Model.Configuration.General;
+using GameSettingsParser.Model.Configuration.Project;
 using GameSettingsParser.Services.Configuration;
 using GameSettingsParser.Services.TextComparison;
 
@@ -23,12 +24,12 @@ namespace GameSettingsParser.ServiceProviders.TextComparison
             _containerProvider = containerProvider;
             _configurationService = configurationService;
             
-            var generalConfigModel = _configurationService.GetConfiguration<GeneralConfigurationModel>();
+            var projectConfig = _configurationService.GetConfiguration<ProjectConfigurationModel>();
                 
-            if(generalConfigModel == null)
+            if(projectConfig == null)
                 throw new InvalidOperationException("Text comparison service is not configured");
 
-            generalConfigModel.TextComparisonServiceIdChanged += OnConfigurationChanged;
+            projectConfig.OnTextComparisonServiceIdChanged += OnConfigurationChanged;
         }
 
         public ITextComparisonService Current
@@ -38,12 +39,12 @@ namespace GameSettingsParser.ServiceProviders.TextComparison
                 if (_current is not null)
                     return _current;
 
-                var generalConfigModel = _configurationService.GetConfiguration<GeneralConfigurationModel>();
+                var projectConfig = _configurationService.GetConfiguration<ProjectConfigurationModel>();
                 
-                if(generalConfigModel == null || generalConfigModel.TextComparisonServiceId == null)
+                if (projectConfig?.TextComparisonServiceId == null)
                     throw new InvalidOperationException("Text comparison service is not configured");
 
-                _current = _containerProvider.Resolve<ITextComparisonService>(generalConfigModel.TextComparisonServiceId);
+                _current = _containerProvider.Resolve<ITextComparisonService>(projectConfig.TextComparisonServiceId);
 
                 return _current;
             }

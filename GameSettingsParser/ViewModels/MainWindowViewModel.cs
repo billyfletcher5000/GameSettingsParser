@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
 using GameSettingsParser.Model;
+using GameSettingsParser.Model.Configuration.General;
 using GameSettingsParser.ServiceProviders.AnalysisExport;
 using GameSettingsParser.Services.AnalysisExport;
 using GameSettingsParser.Services.Configuration;
@@ -191,8 +192,11 @@ namespace GameSettingsParser.ViewModels
             // Debugging
             TestButtonCommand = new DelegateCommand(TestButton);
 
+            var generalConfig = _configurationService.GetConfiguration<GeneralConfigurationModel>();
+            var autoOpenLastParsingProfile = generalConfig?.AutoOpenLastParsingProfile ?? true;
+            
             var lastParsingProfilePath = UserSettings.Instance.LastParsingProfilePath;
-            if (UserSettings.Instance.AutoOpenLastParsingProfile &&
+            if (autoOpenLastParsingProfile &&
                 lastParsingProfilePath != null && File.Exists(lastParsingProfilePath))
             {
                 var profile = ParsingProfileModel.Load(lastParsingProfilePath);

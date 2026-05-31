@@ -3,12 +3,13 @@ using GameSettingsParser.Attributes;
 using GameSettingsParser.Model;
 using GameSettingsParser.Model.Configuration;
 using GameSettingsParser.Model.Configuration.TextComparison;
+using GameSettingsParser.Services.Configuration;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 
 namespace GameSettingsParser.Services.TextComparison
 {
-    [SwitchableService(nameof(ColorSimilarityTextComparisonConfigurationModel), "Color Similarity")]
+    [SwitchableService(nameof(ColorSimilarityTextComparisonService), "Color Similarity")]
     public class ColorSimilarityTextComparisonService : ITextComparisonService
     {
         private ColorSimilarityTextComparisonConfigurationModel? _thisConfiguration;
@@ -18,11 +19,20 @@ namespace GameSettingsParser.Services.TextComparison
             get => ThisConfiguration;
             set => ThisConfiguration = value as ColorSimilarityTextComparisonConfigurationModel;
         }
+        
+        public Type ConfigurationType => typeof(ColorSimilarityTextComparisonConfigurationModel);
 
         public ColorSimilarityTextComparisonConfigurationModel? ThisConfiguration
         {
             get => _thisConfiguration;
             set => _thisConfiguration = value;
+        }
+        
+        public ColorSimilarityTextComparisonService(IConfigurationService configurationService)
+        {
+            var configuration = configurationService.GetConfiguration<ColorSimilarityTextComparisonConfigurationModel>();
+            if (configuration != null)
+                ThisConfiguration = configuration;
         }
 
         public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB, ParsingProfileModel parsingProfile)

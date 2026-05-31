@@ -1,6 +1,9 @@
 ﻿using System.Collections.ObjectModel;
 using System.IO;
 using GameSettingsParser.Model.Configuration;
+using GameSettingsParser.Model.Configuration.ImageAnalysis;
+using GameSettingsParser.Model.Configuration.Project;
+using GameSettingsParser.Model.Configuration.TextComparison;
 using GameSettingsParser.Services.Configuration;
 using GameSettingsParser.Utility;
 using Newtonsoft.Json;
@@ -57,9 +60,6 @@ namespace GameSettingsParser.Model
             {
                 if (_hasSelfChanges) 
                     return true;
-
-                if (Configurations.Any(c => c.HasChanges))
-                    return true;
                 
                 foreach (var imageModel in Images)
                 {
@@ -100,9 +100,6 @@ namespace GameSettingsParser.Model
                     
                     foreach (var imageInstanceModel in ImageInstances)
                         imageInstanceModel.HasChanges = false;
-
-                    foreach (var configurationModel in Configurations)
-                        configurationModel.HasChanges = false;
                 }
             }
         } 
@@ -142,6 +139,17 @@ namespace GameSettingsParser.Model
             Images.CollectionChanged += (_, _) => HasChanges = true;
             MarkupTypes.CollectionChanged += (_, _) => HasChanges = true;
             ImageInstances.CollectionChanged += (_, _) => HasChanges = true;
+            
+            CreateDefaultConfigurations();
+        }
+
+        private void CreateDefaultConfigurations()
+        {
+            Configurations.Add(new ProjectConfigurationModel());
+            Configurations.Add(new TesseractImageAnalysisConfigurationModel());
+            Configurations.Add(new ColorSimilarityTextComparisonConfigurationModel());
+            Configurations.Add(new GoogleViTTextComparisonConfigurationModel());
+            Configurations.Add(new CombinedTextComparisonConfigurationModel());
         }
 
         public static void Save(ParsingProfileModel profile, string path)
@@ -153,7 +161,8 @@ namespace GameSettingsParser.Model
                     var serializer = JsonSerializer.Create(new JsonSerializerSettings()
                     {
                         PreserveReferencesHandling = PreserveReferencesHandling.Objects,
-                        Formatting = Formatting.Indented
+                        Formatting = Formatting.Indented,
+                        TypeNameHandling = TypeNameHandling.Auto
                     });
                     serializer.Serialize(writer, profile);
                 }
@@ -177,7 +186,8 @@ namespace GameSettingsParser.Model
                     var serializer = JsonSerializer.Create(new JsonSerializerSettings()
                     {
                         PreserveReferencesHandling = PreserveReferencesHandling.Objects,
-                        Formatting = Formatting.Indented
+                        Formatting = Formatting.Indented,
+                        TypeNameHandling = TypeNameHandling.Auto
                     });
                 
                     if(serializer.Deserialize(reader, typeof(ParsingProfileModel)) is ParsingProfileModel loadedProfile)

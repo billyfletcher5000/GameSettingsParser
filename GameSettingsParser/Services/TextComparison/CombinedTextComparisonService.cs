@@ -6,13 +6,18 @@ using GameSettingsParser.Controls.TextComparison;
 using GameSettingsParser.Model;
 using GameSettingsParser.Model.Configuration;
 using GameSettingsParser.Model.Configuration.TextComparison;
+using GameSettingsParser.Services.Configuration;
+using GameSettingsParser.Services.Logging;
+using GameSettingsParser.Utility;
 
 namespace GameSettingsParser.Services.TextComparison
 {
-    [SwitchableService(nameof(CombinedTextComparisonConfigurationModel), "Combined")]
+    [SwitchableService(nameof(CombinedTextComparisonService), "Combined")]
     public class CombinedTextComparisonService : ITextComparisonService
     {
         private readonly List<ITextComparisonService> _services = [];
+        private readonly IContainerProvider _containerProvider;
+        private readonly ILogService _log;
 
         private CombinedTextComparisonConfigurationModel? _thisConfiguration;
 
@@ -22,6 +27,8 @@ namespace GameSettingsParser.Services.TextComparison
             set => ThisConfiguration = value as CombinedTextComparisonConfigurationModel;
         }
 
+        public Type ConfigurationType => typeof(CombinedTextComparisonConfigurationModel);
+
         public CombinedTextComparisonConfigurationModel? ThisConfiguration
         {
             get => _thisConfiguration;
@@ -30,14 +37,14 @@ namespace GameSettingsParser.Services.TextComparison
                 if (_thisConfiguration == value) return;
                 
                 if (_thisConfiguration != null)
-                    _thisConfiguration.Configurations.CollectionChanged -= OnServiceTypesSettingsCollectionChanged;
+                    _thisConfiguration.ChildConfigurations.CollectionChanged -= OnServiceTypesSettingsCollectionChanged;
                 
                 _thisConfiguration = value;
                 _services.Clear();
                 
                 if (_thisConfiguration != null)
                 {
-                    var configurations = _thisConfiguration.Configurations;
+                    var configurations = _thisConfiguration.ChildConfigurations;
                     configurations.CollectionChanged += OnServiceTypesSettingsCollectionChanged;
             
                     // We instantiate each type every time
@@ -51,19 +58,29 @@ namespace GameSettingsParser.Services.TextComparison
             }
         }
 
+        public CombinedTextComparisonService(IConfigurationService configurationService, IContainerProvider containerProvider, ILogService logService)
+        {
+            var configuration = configurationService.GetConfiguration<CombinedTextComparisonConfigurationModel>();
+            if (configuration != null)
+                ThisConfiguration = configuration;
+            
+            _containerProvider = containerProvider;
+            _log = logService;
+        }
+        
         public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB, ParsingProfileModel parsingProfile)
         {
             // TODO: Add weighting
             double aggregate = 0.0f;
             foreach (var service in _services)
             {
-                var weight = ThisConfiguration?.Configurations.FirstOrDefault(c => c.ConfigurationModel.ServiceType == service.GetType()).Weight ?? 1.0f;
+                var weight = ThisConfiguration?.ChildConfigurations.FirstOrDefault(c => c.ConfigurationModel.ServiceType == service.GetType()).Weight ?? 1.0f;
                 aggregate += service.GetConfidenceInterval(imageA, imageB, parsingProfile) * weight;
             }
             
             var confidence = aggregate / _services.Count;
             
-            if(confidence < ThisConfiguration?.MinimumConfidence)
+            if (confidence < ThisConfiguration?.MinimumConfidence)
                 return 0.0;
             
             return confidence;
@@ -71,15 +88,22 @@ namespace GameSettingsParser.Services.TextComparison
 
         private ITextComparisonService? InstantiateServiceType(Type serviceType)
         {
-            object? serviceInstance = Activator.CreateInstance(serviceType);
-            if (serviceInstance is not ITextComparisonService textComparisonService)
+            var serviceId = SwitchableServiceHelper.GetSwitchableServiceId(serviceType);
+            if (serviceId == null)
             {
-                Console.WriteLine($"Failed to create instance of {serviceType.Name}, likely not a valid {nameof(ITextComparisonService)}");
+                _log.Error($"Failed to get service ID for {serviceType.Name}");
+                return null;
+            }
+
+            var serviceInstance = _containerProvider.Resolve<ITextComparisonService>(serviceId);
+            if (serviceInstance is null)
+            {
+                _log.Error($"Failed to create instance of {serviceType.Name}, likely not a valid {nameof(ITextComparisonService)}");
                 return null;
             }
                 
-            _services.Add(textComparisonService);
-            return textComparisonService;
+            _services.Add(serviceInstance);
+            return serviceInstance;
         }
 
         private void OnServiceTypesSettingsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

@@ -14,8 +14,6 @@ namespace GameSettingsParser.Services.TextComparison
         protected abstract Size TargetSize { get; }
         protected abstract float[] Mean { get; }
         protected abstract float[] Std { get; }
-        
-        private BasicTextComparisonConfigurationModel? _thisConfiguration;
 
         public IConfigurationModel? Configuration
         {
@@ -23,11 +21,9 @@ namespace GameSettingsParser.Services.TextComparison
             set => ThisConfiguration = value as BasicTextComparisonConfigurationModel;
         }
 
-        public BasicTextComparisonConfigurationModel? ThisConfiguration
-        {
-            get => _thisConfiguration;
-            set => _thisConfiguration = value;
-        }
+        public abstract Type ConfigurationType { get; }
+        
+        protected BasicTextComparisonConfigurationModel? ThisConfiguration { get; set; }
 
         public double GetConfidenceInterval(Bitmap imageA, Bitmap imageB, ParsingProfileModel parsingProfile)
         {

@@ -4,6 +4,6 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
 {
     public class GoogleViTConfigurationViewModel : BasicTextComparisonConfigurationViewModel
     {
-        public override Type ViewType => typeof(GoogleViTTextComparisonConfigurationView);
+        public override string DisplayName => ThisConfiguration?.DisplayName ?? "Google ViT";
     }
 }

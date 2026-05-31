@@ -1,15 +1,11 @@
-﻿<UserControl x:Class="GameSettingsParser.Views.Configuration.General.GeneralConfigurationView"
+﻿<UserControl x:Class="GameSettingsParser.Views.Configuration.TextComparison.BasicTextComparisonConfigurationView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:GameSettingsParser.Views.Configuration.General"
-             xmlns:general="clr-namespace:GameSettingsParser.ViewModels.Configuration.General"
-             xmlns:mvvm="http://prismlibrary.com/"
-             mvvm:ViewModelLocator.AutoWireViewModel="False"
-             d:DataContext="{d:DesignInstance Type=general:GeneralConfigurationViewModel, IsDesignTimeCreatable=False}"
+             xmlns:local="clr-namespace:GameSettingsParser.Views.Configuration.TextComparison"
              mc:Ignorable="d"
-             d:DesignHeight="Auto" d:DesignWidth="600">
+             d:DesignHeight="300" d:DesignWidth="300">
     <Grid Margin="10">
         <Grid.Resources>
             <!-- Default settings for controls -->
@@ -33,10 +29,14 @@
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        
-        <Label Grid.Row="0" Grid.Column="0">Auto-Open Last Parsing Profile:</Label>
-        <CheckBox Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" IsChecked="{Binding AutoOpenLastParsingProfile, Mode=TwoWay}"/>
+    
+        <Label Grid.Row="0" Grid.Column="0">Export Mode:</Label>
+        <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AnalysisExportServiceTypes}" SelectedItem="{Binding SelectedAnalysisExportServiceType, Mode=TwoWay}" />
+    
+        <Label Grid.Row="1" Grid.Column="0">Text Comparison Mode:</Label>
+        <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding TextComparisonServiceTypes}" SelectedItem="{Binding SelectedTextComparisonServiceType, Mode=TwoWay}" />
     </Grid>
 </UserControl>

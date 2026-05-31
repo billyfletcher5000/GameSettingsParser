@@ -31,7 +31,7 @@ namespace GameSettingsParser.Utility
             {
                 var attribute = Attribute.GetCustomAttribute(type, typeof(SwitchableServiceAttribute)) as SwitchableServiceAttribute;
                 if (attribute?.IsDefault == true)
-                    return attribute.ServiceId; 
+                    return attribute.ServiceId;
             }
             
             return null;

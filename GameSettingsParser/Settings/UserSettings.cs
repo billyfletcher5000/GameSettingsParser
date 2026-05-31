@@ -2,6 +2,8 @@
 using System.IO;
 using System.Windows;
 using GameSettingsParser.Model.Configuration;
+using GameSettingsParser.Model.Configuration.General;
+using GameSettingsParser.Model.Configuration.ImageAnalysis;
 using GameSettingsParser.Services.Configuration;
 using Newtonsoft.Json;
 
@@ -11,19 +13,16 @@ public class UserSettings : IConfigurationSource
 {
     public static UserSettings Instance { get; private set; } = new();
     
-    public bool AutoOpenLastParsingProfile { get; set; } = true;
-    
     public string LastParsingProfilePath { get; set; } = "";
     
     public string SelectedImageModel { get; set; } = "";
     
     public string SelectedMarkupType { get; set; } = "";
-    
-    public bool HighDebugVerbosity { get; set; } = false;
-    
-    public bool SaveAnalysisTemporaryImages { get; set; } = false;
-    
-    public ObservableCollection<IConfigurationModel> Configurations { get; set; } = new();
+
+    public ObservableCollection<IConfigurationModel> Configurations { get; set; } = new()
+    {
+        new GeneralConfigurationModel()
+    };
 
     public struct WindowSettings
     {
@@ -45,7 +44,8 @@ public class UserSettings : IConfigurationSource
                 JsonSerializer serializer = JsonSerializer.Create(new JsonSerializerSettings()
                 {
                     PreserveReferencesHandling = PreserveReferencesHandling.Objects,
-                    Formatting = Formatting.Indented
+                    Formatting = Formatting.Indented,
+                    TypeNameHandling = TypeNameHandling.Auto
                 });
                 serializer.Serialize(writer, Instance);
             }
@@ -55,7 +55,6 @@ public class UserSettings : IConfigurationSource
             Console.WriteLine(e);
             throw;
         }
-        
     }
 
     public static void Load(string path)
@@ -68,7 +67,8 @@ public class UserSettings : IConfigurationSource
             {
                 JsonSerializer serializer = JsonSerializer.Create(new JsonSerializerSettings()
                 {
-                    PreserveReferencesHandling = PreserveReferencesHandling.Objects
+                    PreserveReferencesHandling = PreserveReferencesHandling.Objects,
+                    TypeNameHandling = TypeNameHandling.Auto
                 });
                 
                 if(serializer.Deserialize(reader, typeof(UserSettings)) is UserSettings newSettings)

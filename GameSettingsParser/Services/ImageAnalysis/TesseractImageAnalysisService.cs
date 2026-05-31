@@ -2,6 +2,10 @@
 using System.IO;
 using System.Text.RegularExpressions;
 using GameSettingsParser.Model;
+using GameSettingsParser.Model.Configuration.General;
+using GameSettingsParser.Model.Configuration.ImageAnalysis;
+using GameSettingsParser.ServiceProviders.TextComparison;
+using GameSettingsParser.Services.Configuration;
 using GameSettingsParser.Services.Logging;
 using GameSettingsParser.Services.TextComparison;
 using GameSettingsParser.Settings;
@@ -27,10 +31,14 @@ namespace GameSettingsParser.Services.ImageAnalysis
         }
         
         private readonly TesseractEngine _engine;
+        private readonly ITextComparisonServiceProvider _textComparisonServiceProvider;
+        private readonly IConfigurationService _configurationService;
         private readonly ILogService _log;
 
-        public TesseractImageAnalysisService(ILogService logService)
+        public TesseractImageAnalysisService(ITextComparisonServiceProvider textComparisonServiceProvider, IConfigurationService configurationService, ILogService logService)
         {
+            _textComparisonServiceProvider = textComparisonServiceProvider;
+            _configurationService = configurationService;
             _log = logService;
             _engine = new TesseractEngine(@"./TesseractData", "eng", EngineMode.Default);
             
@@ -47,6 +55,7 @@ namespace GameSettingsParser.Services.ImageAnalysis
         
         public async Task<ImageAnalysisResultModel?> AnalyseAsync(ParsingProfileModel parsingProfile, string[] imagePathsToAnalyse, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
+            var config = _configurationService.GetConfiguration<ImageAnalysisConfigurationModel>();
             var imageAnalysisResult = new ImageAnalysisResultModel();
             
             var dynamicMarkupInstanceSets = new Dictionary<string, DynamicMarkupInstanceSet>();
@@ -122,7 +131,7 @@ namespace GameSettingsParser.Services.ImageAnalysis
                             var text = page.GetText();
                             
                             var imageFilename = Path.GetFileName(imagePath);
-                            if (UserSettings.Instance.SaveAnalysisTemporaryImages)
+                            if (config?.SaveAnalysisTemporaryImages ?? false)
                             {
                                 Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/");
                                 croppedImage.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_static/{imageFilename}_{markupType.Name}.png", ImageFormat.Png);
@@ -198,7 +207,8 @@ namespace GameSettingsParser.Services.ImageAnalysis
         /// <exception cref="Exception">Throws when search areas are incorrectly set up or validated</exception>
         private DynamicMarkupInstanceSet ProcessDynamicMarkupInstances(ImageAnalysisResultModel resultModel, ParsingProfileModel parsingProfile, MarkupTypeModel markupType, string[] imagePaths)
         {
-            var saveTempImages = UserSettings.Instance.SaveAnalysisTemporaryImages;
+            var config = _configurationService.GetConfiguration<ImageAnalysisConfigurationModel>();
+            var saveTempImages = config?.SaveAnalysisTemporaryImages ?? false;
             
             var dynamicMarkupInstances = new DynamicMarkupInstanceSet();
             
@@ -291,8 +301,8 @@ namespace GameSettingsParser.Services.ImageAnalysis
                                         Directory.CreateDirectory($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/");
                                         regionBitmap.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/{imageFilename}_{wordText}.png", ImageFormat.Png);
                                     }
-                                    
-                                    var textComparisonService = ContainerLocator.Current.Resolve<ITextComparisonService>();
+
+                                    var textComparisonService = _textComparisonServiceProvider.Current;
 
                                     foreach (var targetBitmap in targetBitmaps)
                                     {

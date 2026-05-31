@@ -1,4 +1,6 @@
 ﻿using GameSettingsParser.Attributes;
+using GameSettingsParser.Model.Configuration.TextComparison;
+using GameSettingsParser.Services.Configuration;
 using Size = System.Drawing.Size;
 
 namespace GameSettingsParser.Services.TextComparison
@@ -13,5 +15,14 @@ namespace GameSettingsParser.Services.TextComparison
         protected override Size TargetSize => new(224, 224);
         protected override float[] Mean => [0.5f, 0.5f, 0.5f];
         protected override float[] Std => [0.5f, 0.5f, 0.5f];
+
+        public override Type ConfigurationType => typeof(GoogleViTTextComparisonConfigurationModel);
+
+        public GoogleViTTextComparisonService(IConfigurationService configurationService)
+        {
+            var configuration = configurationService.GetConfiguration<GoogleViTTextComparisonConfigurationModel>();
+            if (configuration != null)
+                ThisConfiguration = configuration;
+        }
     }
 }

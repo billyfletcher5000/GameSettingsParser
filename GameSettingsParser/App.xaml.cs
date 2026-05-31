@@ -53,6 +53,9 @@ public partial class App : PrismApplication
         
         containerRegistry.RegisterSingleton<ITextComparisonServiceProvider, TextComparisonServiceProvider>();
         RegisterSwitchableServices<ITextComparisonService>(containerRegistry);
+        
+        var configurationService = Container.Resolve<IConfigurationService>();
+        RegisterConfigurationSources(configurationService);
     }
 
     private static void RegisterSwitchableServices<T>(IContainerRegistry containerRegistry) where T : class
@@ -72,23 +75,13 @@ public partial class App : PrismApplication
         return window;
     }
 
-    protected override void Initialize()
-    {
-        base.Initialize();
-
-        var configurationService = Container.Resolve<IConfigurationService>();
-        RegisterConfigurations(configurationService);
-        
-        
-    }
-
     protected override void OnExit(ExitEventArgs e)
     {
         UserSettings.Save(SettingsPathHelper.GetSettingsFilePath());
         base.OnExit(e);
     }
 
-    protected void RegisterConfigurations(IConfigurationService configurationService)
+    protected void RegisterConfigurationSources(IConfigurationService configurationService)
     {
         configurationService.RegisterConfigurationSource(UserSettings.Instance, ConfigurationScope.UserSettings);
     }

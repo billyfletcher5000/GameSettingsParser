@@ -8,7 +8,7 @@ using GameSettingsParser.Utility;
 
 namespace GameSettingsParser.Services.AnalysisExport
 {
-    [SwitchableService(nameof(HTMLAnalysisExportService), "HTML")]
+    [SwitchableService(nameof(HTMLAnalysisExportService), "HTML", true)]
     public class HTMLAnalysisExportService : IAnalysisExportService
     {
         private const string StylesheetPath = "html_export/styles.css";
