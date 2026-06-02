@@ -8,7 +8,6 @@ using Microsoft.Win32;
 using GameSettingsParser.Model;
 using GameSettingsParser.Model.Configuration.General;
 using GameSettingsParser.ServiceProviders.AnalysisExport;
-using GameSettingsParser.Services.AnalysisExport;
 using GameSettingsParser.Services.Configuration;
 using GameSettingsParser.Services.ImageAnalysis;
 using GameSettingsParser.Services.Logging;
@@ -17,7 +16,9 @@ using GameSettingsParser.Services.Validation;
 using GameSettingsParser.Services.Windows;
 using GameSettingsParser.Settings;
 using GameSettingsParser.Utility;
+using GameSettingsParser.ViewModels.Configuration;
 using GameSettingsParser.Views;
+using GameSettingsParser.Views.Configuration;
 using Path = System.IO.Path;
 
 namespace GameSettingsParser.ViewModels
@@ -142,6 +143,7 @@ namespace GameSettingsParser.ViewModels
         private readonly IWindowService _windowService;
         private readonly IProgressDialogService _progressDialogService;
         private readonly IConfigurationService _configurationService;
+        private readonly IContainerProvider _containerProvider;
         private readonly ILogService _log;
 
         public MainWindowViewModel(
@@ -151,6 +153,7 @@ namespace GameSettingsParser.ViewModels
             IWindowService windowService,
             IProgressDialogService progressDialogService,
             IConfigurationService configurationService,
+            IContainerProvider containerProvider,
             ILogService logService
             )
         {
@@ -160,6 +163,7 @@ namespace GameSettingsParser.ViewModels
             _windowService = windowService;
             _progressDialogService = progressDialogService;
             _configurationService = configurationService;
+            _containerProvider = containerProvider;
             _log = logService;
 
             _analysisExportServiceProvider.CurrentChanged += service => RaiseCommandsCanExecuteChanged();
@@ -185,9 +189,9 @@ namespace GameSettingsParser.ViewModels
             ClearTypeInstancesCommand = new DelegateCommand(ClearCurrentTypeMarkupInstances, () => HasSelectedImage && HasSelectedMarkupType && SelectedImageInstance!.MarkupInstances.Count(instance => instance.Type == SelectedMarkupType) > 0);
             ClearAllInstancesCommand = new DelegateCommand(ClearAllMarkupInstances, () => HasSelectedImage && HasSelectedMarkupType && SelectedImageInstance!.MarkupInstances.Count > 0);
             
-            ParseToFileCommand = new DelegateCommand(ParseToFile, () => CanGatherAndExport() && _analysisExportServiceProvider.Current.SupportsExportToFile);
-            ParseToClipboardCommand = new DelegateCommand(ParseToClipboard, () => CanGatherAndExport() && _analysisExportServiceProvider.Current.SupportsExportToClipboard);
-            ParseToWebsiteCommand = new DelegateCommand(ParseToWebsite, () => CanGatherAndExport() && _analysisExportServiceProvider.Current.SupportsExportToWebsite);
+            ParseToFileCommand = new DelegateCommand(ParseToFile, () => CanGatherAndExport() && _analysisExportServiceProvider.Current is { SupportsExportToFile: true });
+            ParseToClipboardCommand = new DelegateCommand(ParseToClipboard, () => CanGatherAndExport() && _analysisExportServiceProvider.Current is { SupportsExportToClipboard : true });
+            ParseToWebsiteCommand = new DelegateCommand(ParseToWebsite, () => CanGatherAndExport() && _analysisExportServiceProvider.Current is { SupportsExportToWebsite : true });
 
             // Debugging
             TestButtonCommand = new DelegateCommand(TestButton);
@@ -434,7 +438,10 @@ namespace GameSettingsParser.ViewModels
         public void AddMarkupType()
         {
             MarkupTypeDialogViewModel dialogViewModel = new(_parsingProfile);
-            MarkupTypeDialog dialog = new MarkupTypeDialog(dialogViewModel);
+            MarkupTypeDialog dialog = new MarkupTypeDialog()
+            {
+                DataContext = dialogViewModel
+            };
             
             if (_windowService.ShowDialog(dialog) == true)
             {
@@ -472,7 +479,10 @@ namespace GameSettingsParser.ViewModels
                 return;
             
             MarkupTypeDialogViewModel dialogViewModel = new(_parsingProfile, SelectedMarkupType);
-            var dialog = new MarkupTypeDialog(dialogViewModel);
+            var dialog = new MarkupTypeDialog()
+            {
+                DataContext = dialogViewModel
+            };
             
             _windowService.ShowDialog(dialog);
         }
@@ -501,7 +511,7 @@ namespace GameSettingsParser.ViewModels
         {
             var analysisResult = await GatherExportResultAsync(cancellationToken, progressText, progressPercentage);
 
-            if (analysisResult is null)
+            if (analysisResult is null || _analysisExportServiceProvider.Current is null)
                 return;
 
             var saveFileDialog = new SaveFileDialog()
@@ -526,7 +536,7 @@ namespace GameSettingsParser.ViewModels
         private async Task ParseToClipboardAsync(CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             var analysisResult = await GatherExportResultAsync(cancellationToken, progressText, progressPercentage);
-            if (analysisResult != null)
+            if (analysisResult != null && _analysisExportServiceProvider.Current is not null)
                 await _analysisExportServiceProvider.Current.ExportToClipboardAsync(analysisResult, _parsingProfile, cancellationToken, progressText, progressPercentage);
         }
 
@@ -538,7 +548,7 @@ namespace GameSettingsParser.ViewModels
         private async Task ParseToWebsiteAsync(CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             var analysisResult = await GatherExportResultAsync(cancellationToken, progressText, progressPercentage);
-            if (analysisResult != null)
+            if (analysisResult != null && _analysisExportServiceProvider.Current is not null)
                 await _analysisExportServiceProvider.Current.ExportToWebsiteAsync(analysisResult, _parsingProfile, cancellationToken, progressText, progressPercentage);
         }
 
@@ -589,7 +599,13 @@ namespace GameSettingsParser.ViewModels
 
         public void OpenSettings()
         {
+            var configurationDialogViewModel = _containerProvider.Resolve<ConfigurationDialogViewModel>();
+            var configurationDialog = new ConfigurationDialog()
+            {
+                DataContext = configurationDialogViewModel
+            };
             
+            _windowService.ShowDialog(configurationDialog);
         }
         
         private void OnMarkupInstancesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs args)
@@ -610,6 +626,7 @@ namespace GameSettingsParser.ViewModels
             ((DelegateCommand)TestButtonCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)ParseToFileCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)ParseToClipboardCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)ParseToWebsiteCommand).RaiseCanExecuteChanged();
         }
         
         private void RaiseProfilePropertiesChanged()

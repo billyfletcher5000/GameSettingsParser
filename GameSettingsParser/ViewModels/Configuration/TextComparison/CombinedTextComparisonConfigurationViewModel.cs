@@ -72,8 +72,16 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
         public CombinedTextComparisonWeightedConfigurationViewModel? SelectedChildConfiguration
         {
             get => _selectedChildConfiguration;
-            set => SetProperty(ref _selectedChildConfiguration, value);
+            set
+            {
+                if (SetProperty(ref _selectedChildConfiguration, value))
+                {
+                    RaisePropertyChanged(nameof(SelectedChildConfigurationModel));
+                }
+            }
         }
+        
+        public IConfigurationModel? SelectedChildConfigurationModel => SelectedChildConfiguration?.Model.ConfigurationModel;
 
         private readonly Dictionary<string, Type> _availableTextComparisonTypes = new();
         public IEnumerable<string> AvailableTextComparisonTypes => _availableTextComparisonTypes.Keys;
@@ -88,14 +96,14 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
         public ICommand AddNewChildConfigurationCommand { get; }
         public ICommand RemoveChildConfigurationCommand { get; }
         
-        private IContainerProvider _containerProvider;
+        private readonly IContainerProvider _containerProvider;
 
         public CombinedTextComparisonConfigurationViewModel(IContainerProvider containerProvider)
         {
             _containerProvider = containerProvider;
             
             AddNewChildConfigurationCommand = new DelegateCommand(AddNewChildConfiguration);
-            RemoveChildConfigurationCommand = new DelegateCommand(RemoveChildConfiguration);
+            RemoveChildConfigurationCommand = new DelegateCommand(RemoveChildConfiguration, () => SelectedChildConfiguration != null);
 
             var types = SwitchableServiceHelper.GetSwitchableServiceImplementations<ITextComparisonService>();
             foreach (var type in types)
@@ -122,7 +130,7 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             if (service == null)
                 return;
 
-            if (Activator.CreateInstance(service.ConfigurationType) is not ITextComparisonConfigurationModel config)
+            if (_containerProvider.Resolve(service.ConfigurationType) is not ITextComparisonConfigurationModel config)
                 return;
             
             var weightedEntry = new CombinedTextComparisonConfigurationModel.WeightedConfiguration(config, 1.0f);
@@ -150,9 +158,9 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             ThisConfiguration?.ChildConfigurations.AddRange(ChildConfigurations.Select(vm => vm.Model));
         }
 
-        public override void ResetChanges()
+        public override void Initialise()
         {
-            base.ResetChanges();
+            base.Initialise();
             UpdateChildConfigurations();
         }
         

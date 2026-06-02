@@ -5,7 +5,7 @@ namespace GameSettingsParser.Model.Configuration.TextComparison
 {
     public class GoogleViTTextComparisonConfigurationModel : BasicTextComparisonConfigurationModel
     {
-        public override Type ViewModelType => typeof(BasicTextComparisonConfigurationViewModel);
+        public override Type ViewModelType => typeof(GoogleViTConfigurationViewModel);
 
         public override Type ServiceType => typeof(GoogleViTTextComparisonService);
 

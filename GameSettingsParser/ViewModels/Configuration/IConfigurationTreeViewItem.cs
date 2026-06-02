@@ -4,6 +4,8 @@
     {
         public string DisplayName { get; }
         
+        public void ApplyChanges();
+        
         public bool CheckForChanges();
     }
 }

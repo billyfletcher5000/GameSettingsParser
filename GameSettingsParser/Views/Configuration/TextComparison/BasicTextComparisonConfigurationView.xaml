@@ -3,9 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:GameSettingsParser.Views.Configuration.TextComparison"
+             xmlns:viewModel="clr-namespace:GameSettingsParser.ViewModels.Configuration.TextComparison"
+             xmlns:mvvm="http://prismlibrary.com/"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mvvm:ViewModelLocator.AutoWireViewModel="False"
+             d:DataContext="{d:DesignInstance Type=viewModel:BasicTextComparisonConfigurationViewModel, IsDesignTimeCreatable=False}"
              mc:Ignorable="d"
-             d:DesignHeight="300" d:DesignWidth="300">
+             d:DesignHeight="Auto" d:DesignWidth="300">
     <Grid Margin="10">
         <Grid.Resources>
             <!-- Default settings for controls -->
@@ -29,14 +33,11 @@
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
     
-        <Label Grid.Row="0" Grid.Column="0">Export Mode:</Label>
-        <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AnalysisExportServiceTypes}" SelectedItem="{Binding SelectedAnalysisExportServiceType, Mode=TwoWay}" />
+        <Label Grid.Row="0" Grid.Column="0">Minimum Confidence:</Label>
+        <xctk:SingleUpDown Grid.Row="0" Grid.Column="1" Value="{Binding MinimumConfidence}" Minimum="0.0" Maximum="1.0" Increment="0.01"/>
     
-        <Label Grid.Row="1" Grid.Column="0">Text Comparison Mode:</Label>
-        <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding TextComparisonServiceTypes}" SelectedItem="{Binding SelectedTextComparisonServiceType, Mode=TwoWay}" />
     </Grid>
 </UserControl>

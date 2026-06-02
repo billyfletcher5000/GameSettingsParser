@@ -41,7 +41,7 @@ namespace GameSettingsParser.ViewModels.Configuration.Project
             ThisConfiguration.TextComparisonServiceId = SelectedTextComparisonServiceType != null ? SwitchableServiceHelper.GetSwitchableServiceId(_textComparisonServiceDisplayNameToType[SelectedTextComparisonServiceType]) : null;
         }
 
-        public void ResetChanges()
+        public void Initialise()
         {
             if (ThisConfiguration != null)
             {
@@ -63,7 +63,7 @@ namespace GameSettingsParser.ViewModels.Configuration.Project
                 }
 
                 SelectedAnalysisExportServiceType = GetSelectedAnalysisExportServiceDisplayName();
-                SelectedAnalysisExportServiceType = GetSelectedTextComparisonServiceDisplayName();
+                SelectedTextComparisonServiceType = GetSelectedTextComparisonServiceDisplayName();
             }
             else
             {

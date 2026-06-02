@@ -19,10 +19,10 @@ public class UserSettings : IConfigurationSource
     
     public string SelectedMarkupType { get; set; } = "";
 
-    public ObservableCollection<IConfigurationModel> Configurations { get; set; } = new()
-    {
+    public ObservableCollection<IConfigurationModel> Configurations { get; init; } = 
+    [
         new GeneralConfigurationModel()
-    };
+    ];
 
     public struct WindowSettings
     {
@@ -34,6 +34,11 @@ public class UserSettings : IConfigurationSource
     }
 
     public WindowSettings? MainWindowSettings { get; set; } = null;
+
+    public void Save()
+    {
+        Save(SettingsPathHelper.GetSettingsFilePath());
+    }
     
     public static void Save(string path)
     {
@@ -68,6 +73,7 @@ public class UserSettings : IConfigurationSource
                 JsonSerializer serializer = JsonSerializer.Create(new JsonSerializerSettings()
                 {
                     PreserveReferencesHandling = PreserveReferencesHandling.Objects,
+                    ObjectCreationHandling = ObjectCreationHandling.Replace,
                     TypeNameHandling = TypeNameHandling.Auto
                 });
                 

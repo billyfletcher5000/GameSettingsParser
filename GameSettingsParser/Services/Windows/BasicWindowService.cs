@@ -10,7 +10,6 @@ namespace GameSettingsParser.Services.Windows
         {
             dialog.Owner = GetMainWindow();
             dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            dialog.Topmost = true;
             dialog.ShowInTaskbar = false;
             return dialog.ShowDialog();
         }

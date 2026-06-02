@@ -9,7 +9,7 @@ using OpenCvSharp.Extensions;
 
 namespace GameSettingsParser.Services.TextComparison
 {
-    [SwitchableService(nameof(ColorSimilarityTextComparisonService), "Color Similarity")]
+    [SwitchableService(nameof(ColorSimilarityTextComparisonService), "Color Similarity", true)]
     public class ColorSimilarityTextComparisonService : ITextComparisonService
     {
         private ColorSimilarityTextComparisonConfigurationModel? _thisConfiguration;

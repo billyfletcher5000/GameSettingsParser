@@ -74,7 +74,7 @@ namespace GameSettingsParser.Services.TextComparison
             double aggregate = 0.0f;
             foreach (var service in _services)
             {
-                var weight = ThisConfiguration?.ChildConfigurations.FirstOrDefault(c => c.ConfigurationModel.ServiceType == service.GetType()).Weight ?? 1.0f;
+                var weight = ThisConfiguration?.ChildConfigurations.FirstOrDefault(c => c.ConfigurationModel.ServiceType == service.GetType())?.Weight ?? 1.0f;
                 aggregate += service.GetConfidenceInterval(imageA, imageB, parsingProfile) * weight;
             }
             

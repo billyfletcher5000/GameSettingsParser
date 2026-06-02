@@ -8,11 +8,8 @@ namespace GameSettingsParser.Views;
 
 public partial class MarkupTypeDialog : Window
 {
-    public MarkupTypeDialogViewModel ViewModel { get; init; }
-    public MarkupTypeDialog(MarkupTypeDialogViewModel viewModel)
+    public MarkupTypeDialog()
     {
-        ViewModel = viewModel;
-        DataContext = viewModel;
         InitializeComponent();
     }
     

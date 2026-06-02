@@ -7,6 +7,7 @@ namespace GameSettingsParser.Utility
         public static IEnumerable<Type> GetSwitchableServiceImplementations<T>() where T : class
         {
             var types = new List<Type>();
+            var tType = typeof(T);
             
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
@@ -16,7 +17,9 @@ namespace GameSettingsParser.Utility
 
                 foreach (var type in assemblyTypes)
                 {
-                    if(type.IsAssignableFrom(typeof(T)) && Attribute.GetCustomAttribute(type, typeof(SwitchableServiceAttribute)) is SwitchableServiceAttribute)
+                    if (!type.IsAssignableTo(typeof(T)))
+                        continue;
+                    if(Attribute.GetCustomAttribute(type, typeof(SwitchableServiceAttribute)) is SwitchableServiceAttribute)
                         types.Add(type);
                 }
             }

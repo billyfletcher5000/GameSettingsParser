@@ -209,6 +209,10 @@ namespace GameSettingsParser.Services.ImageAnalysis
         {
             var config = _configurationService.GetConfiguration<ImageAnalysisConfigurationModel>();
             var saveTempImages = config?.SaveAnalysisTemporaryImages ?? false;
+            var textComparisonService = _textComparisonServiceProvider.Current;
+            
+            if (textComparisonService == null)
+                throw new Exception("No text comparison service available");
             
             var dynamicMarkupInstances = new DynamicMarkupInstanceSet();
             
@@ -302,7 +306,6 @@ namespace GameSettingsParser.Services.ImageAnalysis
                                         regionBitmap.Save($"{AppDomain.CurrentDomain.BaseDirectory}/debug_images/potential_matches_dynamic/{imageFilename}_{wordText}.png", ImageFormat.Png);
                                     }
 
-                                    var textComparisonService = _textComparisonServiceProvider.Current;
 
                                     foreach (var targetBitmap in targetBitmaps)
                                     {

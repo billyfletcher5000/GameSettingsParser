@@ -1,7 +1,9 @@
-﻿using GameSettingsParser.Services.AnalysisExport;
+﻿using GameSettingsParser.Constants;
+using GameSettingsParser.Services.AnalysisExport;
 using GameSettingsParser.Services.TextComparison;
 using GameSettingsParser.Utility;
 using GameSettingsParser.ViewModels.Configuration.General;
+using GameSettingsParser.ViewModels.Configuration.Project;
 using Newtonsoft.Json;
 
 namespace GameSettingsParser.Model.Configuration.Project
@@ -9,13 +11,13 @@ namespace GameSettingsParser.Model.Configuration.Project
     public class ProjectConfigurationModel : IConfigurationModel
     {
         [JsonIgnore]
-        public string DisplayName => "Project";
+        public string DisplayName => "Project Settings";
         
         [JsonIgnore]
-        public Type ViewModelType => typeof(GeneralConfigurationViewModel);
+        public Type ViewModelType => typeof(ProjectConfigurationViewModel);
         
         [JsonIgnore]
-        public string? Section => null;
+        public string? Section => ConfigurationSectionConstants.Project;
         
         [JsonIgnore]
         public IEnumerable<Type> AnalysisExportServiceTypes { get; }

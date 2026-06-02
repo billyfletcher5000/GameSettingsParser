@@ -28,7 +28,7 @@ namespace GameSettingsParser.ViewModels.Configuration.ImageAnalysis
             ThisConfiguration.SaveAnalysisTemporaryImages = SaveAnalysisTemporaryImages;
         }
 
-        public void ResetChanges()
+        public void Initialise()
         {
             if (ThisConfiguration != null)
             {

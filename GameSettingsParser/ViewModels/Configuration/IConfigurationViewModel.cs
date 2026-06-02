@@ -7,10 +7,10 @@ namespace GameSettingsParser.ViewModels.Configuration
         public Type ViewType { get; }
         
         public IConfigurationModel? Configuration { get; set; }
-
-        public void ApplyChanges();
         
-        // Reset changes should be called after configuration is set during creation
-        public void ResetChanges();
+        // Initialise() is called after configuration is set during creation
+        // TODO: Work out a more MVVM approach to this, should be done via property but that meant being a class rather
+        //       than an interface. Could just be a class and thus force BindableBase on children really.
+        public void Initialise();
     }
 }

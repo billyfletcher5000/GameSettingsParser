@@ -10,5 +10,7 @@ namespace GameSettingsParser.Services.Configuration
         
         public void RegisterConfigurationSource(IConfigurationSource source, ConfigurationScope scope);
         public void UnregisterConfigurationSource(IConfigurationSource source);
+
+        public event Action? OnConfigurationSourcesChanged;
     }
 }

@@ -37,7 +37,7 @@ namespace GameSettingsParser.Services.Configuration
             foreach (var configurationSource in _configurationSources.Values)
             {
                 foreach (var configuration in configurationSource.Configurations)
-                    configurations[configurationSource.GetType()] = configuration;
+                    configurations[configuration.GetType()] = configuration;
             }
             
             return configurations.Values.ToArray();
@@ -61,6 +61,8 @@ namespace GameSettingsParser.Services.Configuration
         {
             if (!_configurationSources.TryAdd(scope, source))
                 throw new ArgumentException("Configuration source already registered for this scope");
+            
+            OnConfigurationSourcesChanged?.Invoke();
         }
 
         public void UnregisterConfigurationSource(IConfigurationSource source)
@@ -72,6 +74,9 @@ namespace GameSettingsParser.Services.Configuration
             }
 
             _configurationSources.Inverse.Remove(source);
+            OnConfigurationSourcesChanged?.Invoke();
         }
+
+        public event Action? OnConfigurationSourcesChanged;
     }
 }

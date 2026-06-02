@@ -6,5 +6,7 @@ namespace GameSettingsParser.Services.Configuration
     public interface IConfigurationSource
     {
         public ObservableCollection<IConfigurationModel> Configurations { get; }
+
+        public void Save();
     }
 }

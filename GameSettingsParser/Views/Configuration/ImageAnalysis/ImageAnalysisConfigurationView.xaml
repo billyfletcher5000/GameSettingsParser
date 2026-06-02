@@ -3,10 +3,40 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:GameSettingsParser.Views.Configuration.ImageAnalysis"
+             xmlns:viewModel="clr-namespace:GameSettingsParser.ViewModels.Configuration.ImageAnalysis"
+             xmlns:mvvm="http://prismlibrary.com/"
+             mvvm:ViewModelLocator.AutoWireViewModel="True"
+             d:DataContext="{d:DesignInstance Type=viewModel:ImageAnalysisConfigurationViewModel, IsDesignTimeCreatable=False}"
              mc:Ignorable="d"
-             d:DesignHeight="300" d:DesignWidth="300">
-    <Grid>
+             d:DesignHeight="Auto" d:DesignWidth="300">
+    <Grid Margin="10">
+        <Grid.Resources>
+            <!-- Default settings for controls -->
+            <Style TargetType="{x:Type Label}">
+                <Setter Property="Margin" Value="0,5,5,5" />
+                <Setter Property="Padding" Value="0,0,0,5" />
+                <Setter Property="VerticalAlignment" Value="Center"/>
+            </Style>
+            <Style TargetType="{x:Type ComboBox}">
+                <Setter Property="Margin" Value="0, 2"/>
+            </Style>
+            <Style TargetType="{x:Type CheckBox}">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Margin" Value="0, 0, 0 2"/>
+            </Style>
+        </Grid.Resources>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
         
+        <Label Grid.Row="0" Grid.Column="0">Save Temporary Images:</Label>
+        <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding SaveAnalysisTemporaryImages, Mode=TwoWay}"/>
     </Grid>
 </UserControl>

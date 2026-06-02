@@ -1,5 +1,4 @@
-﻿using GameSettingsParser.Model.Configuration.General;
-using GameSettingsParser.Model.Configuration.Project;
+﻿using GameSettingsParser.Model.Configuration.Project;
 using GameSettingsParser.Services.Configuration;
 using GameSettingsParser.Services.TextComparison;
 
@@ -14,8 +13,9 @@ namespace GameSettingsParser.ServiceProviders.TextComparison
         private readonly IConfigurationService _configurationService;
 
         private ITextComparisonService? _current;
+        private ProjectConfigurationModel? _projectConfig;
 
-        public event Action<ITextComparisonService>? CurrentChanged;
+        public event Action<ITextComparisonService?>? CurrentChanged;
 
         public TextComparisonServiceProvider(
             IContainerProvider containerProvider,
@@ -23,34 +23,41 @@ namespace GameSettingsParser.ServiceProviders.TextComparison
         {
             _containerProvider = containerProvider;
             _configurationService = configurationService;
-            
-            var projectConfig = _configurationService.GetConfiguration<ProjectConfigurationModel>();
-                
-            if(projectConfig == null)
-                throw new InvalidOperationException("Text comparison service is not configured");
 
-            projectConfig.OnTextComparisonServiceIdChanged += OnConfigurationChanged;
+            _configurationService.OnConfigurationSourcesChanged += UpdateProjectConfiguration;
+            UpdateProjectConfiguration();
         }
 
-        public ITextComparisonService Current
+        private void UpdateProjectConfiguration()
+        {
+            if (_projectConfig != null)
+                _projectConfig.OnTextComparisonServiceIdChanged -= OnConfigurationChanged;
+            
+            _projectConfig = _configurationService.GetConfiguration<ProjectConfigurationModel>();
+            
+            if (_projectConfig != null)
+                _projectConfig.OnTextComparisonServiceIdChanged += OnConfigurationChanged;
+
+            OnConfigurationChanged();
+        }
+
+        public ITextComparisonService? Current
         {
             get
             {
                 if (_current is not null)
                     return _current;
 
-                var projectConfig = _configurationService.GetConfiguration<ProjectConfigurationModel>();
-                
-                if (projectConfig?.TextComparisonServiceId == null)
-                    throw new InvalidOperationException("Text comparison service is not configured");
+                if (_projectConfig?.TextComparisonServiceId == null)
+                    return null;
 
-                _current = _containerProvider.Resolve<ITextComparisonService>(projectConfig.TextComparisonServiceId);
+                _current = _containerProvider.Resolve<ITextComparisonService>(_projectConfig.TextComparisonServiceId);
 
                 return _current;
             }
         }
 
-        private void OnConfigurationChanged(string? sender)
+        private void OnConfigurationChanged(string? sender = null)
         {
             _current = null;
             CurrentChanged?.Invoke(Current);

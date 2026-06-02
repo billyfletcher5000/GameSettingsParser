@@ -8,9 +8,15 @@ namespace GameSettingsParser.ViewModels.Configuration.General
     public class GeneralConfigurationViewModel : BindableBase, IConfigurationViewModel
     {
         public Type ViewType => typeof(GeneralConfigurationView);
-        
-        public string DisplayName => ThisConfiguration?.DisplayName ?? "General";
-        
+
+        public string DisplayName
+        {
+            get
+            {
+                return ThisConfiguration?.DisplayName ?? "General";
+            }
+        }
+
         public IConfigurationModel? Configuration { get; set; }
         public GeneralConfigurationModel? ThisConfiguration => Configuration as GeneralConfigurationModel;
         
@@ -21,15 +27,7 @@ namespace GameSettingsParser.ViewModels.Configuration.General
             set => SetProperty(ref _autoOpenLastParsingProfile, value);
         }
 
-        public void ApplyChanges()
-        {
-            if (ThisConfiguration == null)
-                return;
-            
-            ThisConfiguration.AutoOpenLastParsingProfile = AutoOpenLastParsingProfile;
-        }
-
-        public void ResetChanges()
+        public void Initialise()
         {
             if (ThisConfiguration != null)
             {
@@ -41,6 +39,13 @@ namespace GameSettingsParser.ViewModels.Configuration.General
             }
         }
 
+        public void ApplyChanges()
+        {
+            if (ThisConfiguration == null)
+                return;
+            
+            ThisConfiguration.AutoOpenLastParsingProfile = AutoOpenLastParsingProfile;
+        }
 
         public bool CheckForChanges()
         {

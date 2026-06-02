@@ -29,7 +29,7 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             ThisConfiguration.MinimumConfidence = MinimumConfidence;
         }
 
-        public virtual void ResetChanges()
+        public virtual void Initialise()
         {
             MinimumConfidence = ThisConfiguration?.MinimumConfidence ?? 0.0f;
         }

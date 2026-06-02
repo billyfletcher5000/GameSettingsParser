@@ -1,8 +1,6 @@
-﻿using GameSettingsParser.Model.Configuration.General;
-using GameSettingsParser.Model.Configuration.Project;
+﻿using GameSettingsParser.Model.Configuration.Project;
 using GameSettingsParser.Services.AnalysisExport;
 using GameSettingsParser.Services.Configuration;
-using GameSettingsParser.Services.TextComparison;
 
 namespace GameSettingsParser.ServiceProviders.AnalysisExport
 {
@@ -12,8 +10,9 @@ namespace GameSettingsParser.ServiceProviders.AnalysisExport
         private readonly IConfigurationService _configurationService;
 
         private IAnalysisExportService? _current;
+        private ProjectConfigurationModel? _projectConfig;
 
-        public event Action<IAnalysisExportService>? CurrentChanged;
+        public event Action<IAnalysisExportService?>? CurrentChanged;
 
         public AnalysisExportServiceProvider(
             IContainerProvider containerProvider,
@@ -21,34 +20,41 @@ namespace GameSettingsParser.ServiceProviders.AnalysisExport
         {
             _containerProvider = containerProvider;
             _configurationService = configurationService;
-            
-            var projectConfig = _configurationService.GetConfiguration<ProjectConfigurationModel>();
-                
-            if(projectConfig == null)
-                throw new InvalidOperationException("Text comparison service is not configured");
 
-            projectConfig.OnAnalysisExportServiceIdChanged += OnConfigurationChanged;
+            _configurationService.OnConfigurationSourcesChanged += UpdateProjectConfiguration;
+            UpdateProjectConfiguration();
         }
 
-        public IAnalysisExportService Current
+        private void UpdateProjectConfiguration()
+        {
+            if (_projectConfig != null)
+                _projectConfig.OnAnalysisExportServiceIdChanged -= OnConfigurationChanged;
+            
+            _projectConfig = _configurationService.GetConfiguration<ProjectConfigurationModel>();
+            
+            if (_projectConfig != null)
+                _projectConfig.OnAnalysisExportServiceIdChanged += OnConfigurationChanged;
+
+            OnConfigurationChanged();
+        }
+
+        public IAnalysisExportService? Current
         {
             get
             {
                 if (_current is not null)
                     return _current;
 
-                var projectConfig = _configurationService.GetConfiguration<ProjectConfigurationModel>();
-                
-                if(projectConfig?.AnalysisExportServiceId == null)
-                    throw new InvalidOperationException("Text comparison service is not configured");
+                if (_projectConfig?.AnalysisExportServiceId == null)
+                    return null;
 
-                _current = _containerProvider.Resolve<IAnalysisExportService>(projectConfig.AnalysisExportServiceId);
+                _current = _containerProvider.Resolve<IAnalysisExportService>(_projectConfig.AnalysisExportServiceId);
 
                 return _current;
             }
         }
 
-        private void OnConfigurationChanged(string? sender)
+        private void OnConfigurationChanged(string? sender = null)
         {
             _current = null;
             CurrentChanged?.Invoke(Current);

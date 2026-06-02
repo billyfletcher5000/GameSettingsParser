@@ -32,7 +32,7 @@ namespace GameSettingsParser.ViewModels.Configuration
         public ICommand OnApplyCommand { get; }
         public ICommand OnTreeViewSelectionChangedCommand { get; }
         
-        public ConfigurationDialogViewModel(IConfigurationService configurationService)
+        public ConfigurationDialogViewModel(IConfigurationService configurationService, IContainerProvider containerProvider)
         {
             OnOkCommand = new DelegateCommand<Window>(OnOK);
             OnCancelCommand = new DelegateCommand<Window>(OnCancel);
@@ -72,18 +72,18 @@ namespace GameSettingsParser.ViewModels.Configuration
                         {
                             sectionViewModel = new ConfigurationSectionViewModel() { DisplayName = sectionName };
                             sectionsList.Add(sectionViewModel);
-                            parentSection = sectionViewModel;
                         }
                         
+                        parentSection = sectionViewModel;
                         section = sectionViewModel;
                     }
                 }
                 
-                if (Activator.CreateInstance(configurationModel.ViewModelType) is IConfigurationViewModel
+                if (containerProvider.Resolve(configurationModel.ViewModelType) is IConfigurationViewModel
                     configurationViewModel && section != null)
                 {
                     configurationViewModel.Configuration = configurationModel;
-                    configurationViewModel.ResetChanges();
+                    configurationViewModel.Initialise();
                     section.TreeViewItems.Add(configurationViewModel);
 
                     if(configurationViewModel is BindableBase bindableBase)
@@ -105,20 +105,24 @@ namespace GameSettingsParser.ViewModels.Configuration
 
         private void OnCancel(Window window)
         {
-            SelectedConfiguration?.ResetChanges();
             window.DialogResult = false;
         }
 
         private void OnApply()
         {
-            SelectedConfiguration?.ApplyChanges();
+            foreach (var configurationTreeViewItem in TreeViewItems)
+            {
+                configurationTreeViewItem.ApplyChanges();
+            }
+            
+            CalculateHasChanges();
         }
 
         private void CalculateHasChanges()
         {
             foreach (var treeViewItem in TreeViewItems)
             {
-                if (treeViewItem.CheckForChanges())
+                if (treeViewItem is IConfigurationViewModel viewModel && viewModel.CheckForChanges())
                 {
                     HasChanges = true;
                     return;

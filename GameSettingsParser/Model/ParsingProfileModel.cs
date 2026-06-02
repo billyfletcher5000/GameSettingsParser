@@ -12,16 +12,30 @@ namespace GameSettingsParser.Model
 {
     public class ParsingProfileModel : IConfigurationSource
     {
-        private bool _hasSelfChanges = false;
-        private double _minimumDynamicComparisonConfidence = 0.0;
+        private bool _hasSelfChanges;
+        private double _minimumDynamicComparisonConfidence;
         private int _wordGapThreshold = 10;
+
+        [JsonIgnore]
+        public string? FilePath { get; private set; }
 
         public string Name { get; set; } = "Untitled";
         public ObservableCollection<MarkupTypeModel> MarkupTypes { get; } = [];
         public ObservableCollection<ImageModel> Images { get; } = [];
         public ObservableCollection<ImageInstanceModel> ImageInstances { get; } = [];
-        public ObservableCollection<IConfigurationModel> Configurations { get; } = [];
         
+        // TODO: There's got to be a more elegant way of handling default configuration models,
+        //       possibly should be created on retrieval and have attribute/property to say
+        //       which configuration source type it should be added to by default?
+        [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+        public ObservableCollection<IConfigurationModel> Configurations { get; init; } = 
+        [
+            new ProjectConfigurationModel(),
+            new TesseractImageAnalysisConfigurationModel(),
+            new ColorSimilarityTextComparisonConfigurationModel(),
+            new GoogleViTTextComparisonConfigurationModel(),
+            new CombinedTextComparisonConfigurationModel()
+        ];
 
         /// <summary>
         /// The amount of pixels between words' bounding boxes for them to be considered part of the same text string
@@ -139,17 +153,22 @@ namespace GameSettingsParser.Model
             Images.CollectionChanged += (_, _) => HasChanges = true;
             MarkupTypes.CollectionChanged += (_, _) => HasChanges = true;
             ImageInstances.CollectionChanged += (_, _) => HasChanges = true;
-            
-            CreateDefaultConfigurations();
         }
 
-        private void CreateDefaultConfigurations()
+        public void Save()
         {
-            Configurations.Add(new ProjectConfigurationModel());
-            Configurations.Add(new TesseractImageAnalysisConfigurationModel());
-            Configurations.Add(new ColorSimilarityTextComparisonConfigurationModel());
-            Configurations.Add(new GoogleViTTextComparisonConfigurationModel());
-            Configurations.Add(new CombinedTextComparisonConfigurationModel());
+            Save(FilePath!);
+        }
+        
+        public void Save(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(nameof(path));
+            
+            if (!Directory.Exists(path))
+                throw new DirectoryNotFoundException($"Directory '{path}' does not exist.");
+            
+            Save(this, path);
         }
 
         public static void Save(ParsingProfileModel profile, string path)
@@ -187,11 +206,13 @@ namespace GameSettingsParser.Model
                     {
                         PreserveReferencesHandling = PreserveReferencesHandling.Objects,
                         Formatting = Formatting.Indented,
-                        TypeNameHandling = TypeNameHandling.Auto
+                        TypeNameHandling = TypeNameHandling.Auto,
+                        ObjectCreationHandling = ObjectCreationHandling.Auto
                     });
                 
                     if(serializer.Deserialize(reader, typeof(ParsingProfileModel)) is ParsingProfileModel loadedProfile)
                     {
+                        loadedProfile.FilePath = path;
                         UpdateImagePathsWithProfilePath(loadedProfile, path);
                         return loadedProfile;
                     }

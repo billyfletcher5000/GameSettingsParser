@@ -8,6 +8,12 @@ namespace GameSettingsParser.ViewModels.Configuration
         public required string DisplayName { get; set; }
 
         public ObservableCollection<IConfigurationTreeViewItem> TreeViewItems { get; set; } = new();
+
+        public void ApplyChanges()
+        {
+            foreach (var treeViewItem in TreeViewItems)
+                treeViewItem.ApplyChanges();
+        }
         
         public bool CheckForChanges()
         {
