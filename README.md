@@ -108,6 +108,8 @@ then on export will scan the whole image set if wanted.
 
 [As well as the Markdown output here.](https://github.com/billyfletcher5000/GameSettingsParser/blob/main/SampleProjects/cyberpunk_sample_project/output/markdown_example/markdown_example.md)
 
+![Cyberpunk Example](./readme_screenshots/cyberpunk_example.png)
+
 ## Development
 
 ### Confluence Setup ###
