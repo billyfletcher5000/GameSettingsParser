@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Text.Json.Serialization;
 using GameSettingsParser.Services.TextComparison;
 using GameSettingsParser.ViewModels.Configuration.TextComparison;
 
@@ -9,6 +10,7 @@ namespace GameSettingsParser.Model.Configuration.TextComparison
         public class WeightedConfiguration
         {
             public ITextComparisonConfigurationModel ConfigurationModel { get; init; }
+            [JsonIgnore]
             public string DisplayName { get; set; }
             public float Weight { get; set; }
 

@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModel="clr-namespace:GameSettingsParser.ViewModels.Configuration.ImageAnalysis"
              xmlns:mvvm="http://prismlibrary.com/"
-             mvvm:ViewModelLocator.AutoWireViewModel="True"
+             mvvm:ViewModelLocator.AutoWireViewModel="False"
              d:DataContext="{d:DesignInstance Type=viewModel:ImageAnalysisConfigurationViewModel, IsDesignTimeCreatable=False}"
              mc:Ignorable="d"
              d:DesignHeight="Auto" d:DesignWidth="300">

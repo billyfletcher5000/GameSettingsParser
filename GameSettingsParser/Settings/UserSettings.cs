@@ -35,7 +35,7 @@ public class UserSettings : IConfigurationSource
 
     public WindowSettings? MainWindowSettings { get; set; } = null;
 
-    public void Save()
+    public void OnConfigurationChangesApplied()
     {
         Save(SettingsPathHelper.GetSettingsFilePath());
     }

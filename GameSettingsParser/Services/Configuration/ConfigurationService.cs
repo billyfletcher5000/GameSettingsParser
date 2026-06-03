@@ -78,5 +78,19 @@ namespace GameSettingsParser.Services.Configuration
         }
 
         public event Action? OnConfigurationSourcesChanged;
+
+        public void NotifyConfigurationChangesApplied(IConfigurationModel configuration)
+        {
+            var sourcesApplied = new HashSet<IConfigurationSource>();
+            
+            foreach (var configurationSource in _configurationSources.Values)
+            {
+                if (configurationSource.Configurations.Contains(configuration))
+                    sourcesApplied.Add(configurationSource);
+            }
+            
+            foreach(var source in sourcesApplied)
+                source.OnConfigurationChangesApplied();
+        }
     }
 }

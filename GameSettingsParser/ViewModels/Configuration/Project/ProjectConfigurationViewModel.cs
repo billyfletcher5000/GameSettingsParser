@@ -1,5 +1,4 @@
-﻿using GameSettingsParser.Model.Configuration;
-using GameSettingsParser.Model.Configuration.Project;
+﻿using GameSettingsParser.Model.Configuration.Project;
 using GameSettingsParser.Utility;
 using GameSettingsParser.Views.Configuration.Project;
 
@@ -9,7 +8,6 @@ namespace GameSettingsParser.ViewModels.Configuration.Project
     {
         public override string DisplayName => ThisConfiguration?.DisplayName ?? "Project";
         public override Type ViewType => typeof(ProjectConfigurationView);
-        public IConfigurationModel? Configuration { get; set; }
         public ProjectConfigurationModel? ThisConfiguration => Configuration as ProjectConfigurationModel;
         
         public List<string> AnalysisExportServiceTypes => _analysisExportServiceDisplayNameToType.Keys.ToList();

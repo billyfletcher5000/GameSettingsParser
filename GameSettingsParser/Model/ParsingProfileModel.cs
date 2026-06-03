@@ -155,9 +155,9 @@ namespace GameSettingsParser.Model
             ImageInstances.CollectionChanged += (_, _) => HasChanges = true;
         }
 
-        public void Save()
+        public void OnConfigurationChangesApplied()
         {
-            Save(FilePath!);
+            HasChanges = true;
         }
         
         public void Save(string path)

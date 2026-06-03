@@ -145,7 +145,7 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             var weightedConfigViewModel = new CombinedTextComparisonWeightedConfigurationViewModel(weightedEntry, viewModel);
             weightedConfigViewModel.PropertyChanged += OnWeightedConfigPropertyChanged;
             ChildConfigurations.Add(weightedConfigViewModel);
-            RaiseConfigurationChanged();
+            RaiseConfigurationChanged(Configuration);
         }
 
         private void RemoveChildConfiguration()
@@ -155,7 +155,7 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             
             SelectedChildConfiguration.PropertyChanged -= OnWeightedConfigPropertyChanged;
             ChildConfigurations.Remove(SelectedChildConfiguration);
-            RaiseConfigurationChanged();
+            RaiseConfigurationChanged(Configuration);
         }
         
         public override void ApplyChanges()
@@ -236,7 +236,7 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
         
         private void OnWeightedConfigPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            RaiseConfigurationChanged();
+            RaiseConfigurationChanged(Configuration);
         }
     }
 }

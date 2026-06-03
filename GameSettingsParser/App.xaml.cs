@@ -77,7 +77,7 @@ public partial class App : PrismApplication
 
     protected override void OnExit(ExitEventArgs e)
     {
-        UserSettings.Instance.Save();
+        UserSettings.Instance.OnConfigurationChangesApplied();
         base.OnExit(e);
     }
 

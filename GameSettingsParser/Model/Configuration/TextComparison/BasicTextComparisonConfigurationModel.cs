@@ -1,4 +1,5 @@
 ﻿using GameSettingsParser.Constants;
+using Newtonsoft.Json;
 
 namespace GameSettingsParser.Model.Configuration.TextComparison
 {
@@ -6,12 +7,16 @@ namespace GameSettingsParser.Model.Configuration.TextComparison
     {
         public float MinimumConfidence { get; set; } = 0.0f;
 
+        [JsonIgnore]
         public abstract Type ViewModelType { get; }
         
+        [JsonIgnore]
         public string? Section => $"{ConfigurationSectionConstants.Project}/{ConfigurationSectionConstants.TextComparison}";
 
+        [JsonIgnore]
         public abstract Type ServiceType { get; }
         
+        [JsonIgnore]
         public abstract string DisplayName { get; }
     }
 }

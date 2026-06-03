@@ -26,14 +26,14 @@ namespace GameSettingsParser.ViewModels.Configuration
 
         protected ConfigurationViewModelBase()
         {
-            PropertyChanged += (_, _) => OnConfigurationChanged?.Invoke();
+            PropertyChanged += (_, _) => OnConfigurationChanged?.Invoke(Configuration);
         }
         
-        public event Action? OnConfigurationChanged;
+        public event Action<IConfigurationModel?>? OnConfigurationChanged;
         
-        protected void RaiseConfigurationChanged()
+        protected void RaiseConfigurationChanged(IConfigurationModel? configuration)
         {
-            OnConfigurationChanged?.Invoke();
+            OnConfigurationChanged?.Invoke(configuration);
         }
     }
 }

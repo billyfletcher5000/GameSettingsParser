@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
+using GameSettingsParser.Model.Configuration;
 using GameSettingsParser.Services.Configuration;
 
 namespace GameSettingsParser.ViewModels.Configuration
@@ -32,8 +33,13 @@ namespace GameSettingsParser.ViewModels.Configuration
         public ICommand OnApplyCommand { get; }
         public ICommand OnTreeViewSelectionChangedCommand { get; }
         
+        private IConfigurationService _configurationService;
+        private List<IConfigurationModel> _changedConfigurations = [];
+        
         public ConfigurationDialogViewModel(IConfigurationService configurationService, IContainerProvider containerProvider)
         {
+            _configurationService = configurationService;
+            
             OnOkCommand = new DelegateCommand<Window>(OnOK);
             OnCancelCommand = new DelegateCommand<Window>(OnCancel);
             OnApplyCommand = new DelegateCommand(OnApply);
@@ -84,9 +90,18 @@ namespace GameSettingsParser.ViewModels.Configuration
                 {
                     configurationViewModel.Configuration = configurationModel;
                     section.TreeViewItems.Add(configurationViewModel);
-                    configurationViewModel.OnConfigurationChanged += CalculateHasChanges;
+                    configurationViewModel.OnConfigurationChanged += OnConfigurationChanged;
                 }
             }
+        }
+
+        private void OnConfigurationChanged(IConfigurationModel? configuration)
+        {
+            if (configuration == null)
+                return;
+            
+            _changedConfigurations.Add(configuration);
+            CalculateHasChanges();
         }
 
         private void OnTreeViewSelectionChanged(object selection)
@@ -112,6 +127,9 @@ namespace GameSettingsParser.ViewModels.Configuration
                 configurationTreeViewItem.ApplyChanges();
             }
             
+            foreach (var configuration in _changedConfigurations)
+                _configurationService.NotifyConfigurationChangesApplied(configuration);
+            
             CalculateHasChanges();
         }
 
@@ -119,7 +137,7 @@ namespace GameSettingsParser.ViewModels.Configuration
         {
             foreach (var treeViewItem in TreeViewItems)
             {
-                if (treeViewItem is ConfigurationViewModelBase viewModel && viewModel.CheckForChanges())
+                if (treeViewItem.CheckForChanges())
                 {
                     HasChanges = true;
                     return;

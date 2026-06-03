@@ -103,31 +103,31 @@
     {
       "$id": "8",
       "Name": "20260410162305_1",
-      "Path": "C:\\Dev\\GameSettingsParser\\TestData\\export_test\\images\\20260410162305_1.jpg",
+      "Path": "C:\\Dev\\GameSettingsParser\\SampleProjects\\cyberpunk_sample_project\\images\\20260410162305_1.jpg",
       "RelativePath": "images\\20260410162305_1.jpg"
     },
     {
       "$id": "9",
       "Name": "20260410162306_1",
-      "Path": "C:\\Dev\\GameSettingsParser\\TestData\\export_test\\images\\20260410162306_1.jpg",
+      "Path": "C:\\Dev\\GameSettingsParser\\SampleProjects\\cyberpunk_sample_project\\images\\20260410162306_1.jpg",
       "RelativePath": "images\\20260410162306_1.jpg"
     },
     {
       "$id": "10",
       "Name": "20260410162310_1",
-      "Path": "C:\\Dev\\GameSettingsParser\\TestData\\export_test\\images\\20260410162310_1.jpg",
+      "Path": "C:\\Dev\\GameSettingsParser\\SampleProjects\\cyberpunk_sample_project\\images\\20260410162310_1.jpg",
       "RelativePath": "images\\20260410162310_1.jpg"
     },
     {
       "$id": "11",
       "Name": "20260410162312_1",
-      "Path": "C:\\Dev\\GameSettingsParser\\TestData\\export_test\\images\\20260410162312_1.jpg",
+      "Path": "C:\\Dev\\GameSettingsParser\\SampleProjects\\cyberpunk_sample_project\\images\\20260410162312_1.jpg",
       "RelativePath": "images\\20260410162312_1.jpg"
     },
     {
       "$id": "12",
       "Name": "20260410162330_1",
-      "Path": "C:\\Dev\\GameSettingsParser\\TestData\\export_test\\images\\20260410162330_1.jpg",
+      "Path": "C:\\Dev\\GameSettingsParser\\SampleProjects\\cyberpunk_sample_project\\images\\20260410162330_1.jpg",
       "RelativePath": "images\\20260410162330_1.jpg"
     }
   ],
@@ -260,6 +260,35 @@
         }
       ],
       "HasChanges": false
+    }
+  ],
+  "Configurations": [
+    {
+      "$id": "30",
+      "$type": "GameSettingsParser.Model.Configuration.Project.ProjectConfigurationModel, GameSettingsParser",
+      "AnalysisExportServiceId": "ConfluenceAnalysisExportService",
+      "TextComparisonServiceId": "ColorSimilarityTextComparisonService"
+    },
+    {
+      "$id": "31",
+      "$type": "GameSettingsParser.Model.Configuration.ImageAnalysis.TesseractImageAnalysisConfigurationModel, GameSettingsParser",
+      "SaveAnalysisTemporaryImages": false
+    },
+    {
+      "$id": "32",
+      "$type": "GameSettingsParser.Model.Configuration.TextComparison.ColorSimilarityTextComparisonConfigurationModel, GameSettingsParser",
+      "MinimumConfidence": 0.0
+    },
+    {
+      "$id": "33",
+      "$type": "GameSettingsParser.Model.Configuration.TextComparison.GoogleViTTextComparisonConfigurationModel, GameSettingsParser",
+      "MinimumConfidence": 0.0
+    },
+    {
+      "$id": "34",
+      "$type": "GameSettingsParser.Model.Configuration.TextComparison.CombinedTextComparisonConfigurationModel, GameSettingsParser",
+      "ChildConfigurations": [],
+      "MinimumConfidence": 0.0
     }
   ],
   "WordGapThreshold": 8,
