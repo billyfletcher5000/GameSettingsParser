@@ -21,16 +21,18 @@ namespace GameSettingsParser.Services.AnalysisExport
         
         public Size ThumbnailSize { get; set; } = new Size(96, 54);
         
-        public void ExportToClipboardAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile)
+        public Task ExportToClipboardAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             var markdownOutput = CreateMarkdownOutput(imageAnalysisResult, parsingProfile);
             Clipboard.SetText(markdownOutput);
+            return Task.CompletedTask;
         }
-
-        public void ExportToFileAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath)
+        
+        public Task ExportToFileAsync(ImageAnalysisResultModel imageAnalysisResult, ParsingProfileModel parsingProfile, string outputPath, CancellationToken cancellationToken, IProgress<string> progressText, IProgress<double> progressPercentage)
         {
             var markdownOutput = CreateMarkdownOutput(imageAnalysisResult, parsingProfile, true, outputPath);
             File.WriteAllText(outputPath, markdownOutput);
+            return Task.CompletedTask;
         }
 
         private string CreateMarkdownOutput(ImageAnalysisResultModel imageAnalysisResult,
