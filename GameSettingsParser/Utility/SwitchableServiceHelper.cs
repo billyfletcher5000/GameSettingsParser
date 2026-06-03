@@ -13,7 +13,7 @@ namespace GameSettingsParser.Utility
 
             foreach (var assembly in assemblies)
             {
-                var assemblyTypes = assembly.GetTypes();
+                var assemblyTypes = ReflectionHelper.GetLoadableTypes(assembly);
 
                 foreach (var type in assemblyTypes)
                 {
