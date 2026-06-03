@@ -1,15 +1,14 @@
 ﻿using GameSettingsParser.Model.Configuration;
 using GameSettingsParser.Model.Configuration.General;
-using GameSettingsParser.Utility;
 using GameSettingsParser.Views.Configuration.General;
 
 namespace GameSettingsParser.ViewModels.Configuration.General
 {
-    public class GeneralConfigurationViewModel : BindableBase, IConfigurationViewModel
+    public class GeneralConfigurationViewModel : ConfigurationViewModelBase
     {
-        public Type ViewType => typeof(GeneralConfigurationView);
+        public override Type ViewType => typeof(GeneralConfigurationView);
 
-        public string DisplayName
+        public override string DisplayName
         {
             get
             {
@@ -17,7 +16,6 @@ namespace GameSettingsParser.ViewModels.Configuration.General
             }
         }
 
-        public IConfigurationModel? Configuration { get; set; }
         public GeneralConfigurationModel? ThisConfiguration => Configuration as GeneralConfigurationModel;
         
         private bool _autoOpenLastParsingProfile;
@@ -27,7 +25,7 @@ namespace GameSettingsParser.ViewModels.Configuration.General
             set => SetProperty(ref _autoOpenLastParsingProfile, value);
         }
 
-        public void Initialise()
+        protected override void OnConfigurationUpdated()
         {
             if (ThisConfiguration != null)
             {
@@ -39,7 +37,7 @@ namespace GameSettingsParser.ViewModels.Configuration.General
             }
         }
 
-        public void ApplyChanges()
+        public override void ApplyChanges()
         {
             if (ThisConfiguration == null)
                 return;
@@ -47,7 +45,7 @@ namespace GameSettingsParser.ViewModels.Configuration.General
             ThisConfiguration.AutoOpenLastParsingProfile = AutoOpenLastParsingProfile;
         }
 
-        public bool CheckForChanges()
+        public override bool CheckForChanges()
         {
             if (ThisConfiguration == null)
                 return false;

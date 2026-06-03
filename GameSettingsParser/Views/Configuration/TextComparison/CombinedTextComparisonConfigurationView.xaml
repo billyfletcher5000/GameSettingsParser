@@ -3,10 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:GameSettingsParser.Controls.TextComparison"
              xmlns:viewModels="clr-namespace:GameSettingsParser.ViewModels.Configuration.TextComparison"
              xmlns:mvvm="http://prismlibrary.com/"
-             xmlns:global="clr-namespace:GameSettingsParser"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              xmlns:dt="clr-namespace:GameSettingsParser.DataTemplates"
              mvvm:ViewModelLocator.AutoWireViewModel="True"
@@ -16,13 +14,6 @@
     <Grid Margin="10">
         <Grid.Resources>
             <!-- Default settings for controls -->
-            <Style TargetType="{x:Type Label}">
-                <Setter Property="Margin" Value="0,3,5,5" />
-                <Setter Property="Padding" Value="0,0,0,5" />
-            </Style>
-            <Style TargetType="{x:Type TextBox}">
-                <Setter Property="Margin" Value="0,0,0,5" />
-            </Style>
             <Style TargetType="{x:Type Button}">
                 <Setter Property="Width" Value="70" />
                 <Setter Property="Height" Value="25" />
@@ -35,34 +26,51 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
+        <DataGrid Grid.Row="0"
+                  MinHeight="120"
+                  RowHeight="28"
+                  ItemsSource="{Binding Path=ChildConfigurations}"
+                  SelectedItem="{Binding Path=SelectedChildConfiguration, Mode=TwoWay}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Method"
+                                    Binding="{Binding Path=DisplayName, Mode=TwoWay}"
+                                    Width="2*" />
+
+                <DataGridTemplateColumn Header="Weight"
+                                        Width="3*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Weight, StringFormat=N}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <xctk:SingleUpDown Value="{Binding Path=Weight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                               Increment="0.01"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Center"
+                                               FormatString="N"
+                                               Margin="4,0" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
         
-        <ListBox Grid.Row="0" MinHeight="120" ItemsSource="{Binding Path=ChildConfigurations}" SelectedItem="{Binding Path=SelectedChildConfiguration, Mode=TwoWay}">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <Grid Margin="1" HorizontalAlignment="Stretch">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="2*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="3*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="20"/>
-                        </Grid.RowDefinitions>
-                        <Label Grid.Column="0" Content="{Binding Path=ConfigurationModelDisplayName}"/>
-                        <GridSplitter Grid.Column="1" Width="4" Background="LightGray"/>
-                        <StackPanel Grid.Column="2" Orientation="Horizontal">
-                            <Label>Weight:</Label>
-                            <xctk:SingleUpDown Value="{Binding Path=Weight, Mode=TwoWay}" Increment="0.01"/>
-                        </StackPanel>
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4">
             <ComboBox MinWidth="200" ItemsSource="{Binding AvailableTextComparisonTypes}" SelectedItem="{Binding SelectedTextComparisonType, Mode=TwoWay}" />
             <Button Width="22" Command="{Binding AddNewChildConfigurationCommand}">+</Button>
             <Button Width="22" Command="{Binding RemoveChildConfigurationCommand}">-</Button>
         </StackPanel>
-        <ContentControl Grid.Row="2" Content="{Binding SelectedChildConfigurationModel}"  ContentTemplateSelector="{x:Static dt:ConfigurationTemplateSelector.Instance}" Margin="5"/>
+        
+        
+        <Border Grid.Row="2" BorderBrush="Gray" BorderThickness="1">
+            <ContentPresenter Content="{Binding SelectedChildConfigurationViewModel}" ContentTemplateSelector="{x:Static dt:ConfigurationTemplateSelector.Instance}"/>
+        </Border>
     </Grid>
 </UserControl>

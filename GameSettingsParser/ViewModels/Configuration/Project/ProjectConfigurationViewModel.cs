@@ -5,10 +5,10 @@ using GameSettingsParser.Views.Configuration.Project;
 
 namespace GameSettingsParser.ViewModels.Configuration.Project
 {
-    public class ProjectConfigurationViewModel : BindableBase, IConfigurationViewModel
+    public class ProjectConfigurationViewModel : ConfigurationViewModelBase
     {
-        public string DisplayName => ThisConfiguration?.DisplayName ?? "Project";
-        public Type ViewType => typeof(ProjectConfigurationView);
+        public override string DisplayName => ThisConfiguration?.DisplayName ?? "Project";
+        public override Type ViewType => typeof(ProjectConfigurationView);
         public IConfigurationModel? Configuration { get; set; }
         public ProjectConfigurationModel? ThisConfiguration => Configuration as ProjectConfigurationModel;
         
@@ -32,7 +32,7 @@ namespace GameSettingsParser.ViewModels.Configuration.Project
         private readonly Dictionary<string, Type> _analysisExportServiceDisplayNameToType = new();
         private readonly Dictionary<string, Type> _textComparisonServiceDisplayNameToType = new();
 
-        public void ApplyChanges()
+        public override void ApplyChanges()
         {
             if (ThisConfiguration == null)
                 return;
@@ -41,7 +41,7 @@ namespace GameSettingsParser.ViewModels.Configuration.Project
             ThisConfiguration.TextComparisonServiceId = SelectedTextComparisonServiceType != null ? SwitchableServiceHelper.GetSwitchableServiceId(_textComparisonServiceDisplayNameToType[SelectedTextComparisonServiceType]) : null;
         }
 
-        public void Initialise()
+        protected override void OnConfigurationUpdated()
         {
             if (ThisConfiguration != null)
             {
@@ -91,7 +91,7 @@ namespace GameSettingsParser.ViewModels.Configuration.Project
         }
 
 
-        public bool CheckForChanges()
+        public override bool CheckForChanges()
         {
             if (ThisConfiguration == null)
                 return false;

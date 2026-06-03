@@ -17,7 +17,7 @@ namespace GameSettingsParser.DataTemplates
             if (item is ConfigurationSectionViewModel)
                 return SectionTemplate;
             
-            if (item is IConfigurationViewModel)
+            if (item is ConfigurationViewModelBase)
                 return ConfigTemplate;
             
             return base.SelectTemplate(item, container);

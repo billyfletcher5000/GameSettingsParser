@@ -12,7 +12,7 @@ namespace GameSettingsParser.DataTemplates
         
         public override DataTemplate? SelectTemplate(object? item, DependencyObject container)
         {
-            if(item is not IConfigurationViewModel configurationModel)
+            if(item is not ConfigurationViewModelBase configurationModel)
                 return base.SelectTemplate(item, container);
 
             if (!_templateCache.TryGetValue(configurationModel.GetType(), out var template))

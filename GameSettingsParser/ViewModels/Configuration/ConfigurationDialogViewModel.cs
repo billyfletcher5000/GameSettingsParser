@@ -9,8 +9,8 @@ namespace GameSettingsParser.ViewModels.Configuration
     {
         public ObservableCollection<IConfigurationTreeViewItem> TreeViewItems { get; } = [];
         
-        private IConfigurationViewModel? _selectedSection;
-        public IConfigurationViewModel? SelectedConfiguration
+        private ConfigurationViewModelBase? _selectedSection;
+        public ConfigurationViewModelBase? SelectedConfiguration
         {
             get => _selectedSection;
             set
@@ -79,22 +79,19 @@ namespace GameSettingsParser.ViewModels.Configuration
                     }
                 }
                 
-                if (containerProvider.Resolve(configurationModel.ViewModelType) is IConfigurationViewModel
+                if (containerProvider.Resolve(configurationModel.ViewModelType) is ConfigurationViewModelBase
                     configurationViewModel && section != null)
                 {
                     configurationViewModel.Configuration = configurationModel;
-                    configurationViewModel.Initialise();
                     section.TreeViewItems.Add(configurationViewModel);
-
-                    if(configurationViewModel is BindableBase bindableBase)
-                        bindableBase.PropertyChanged += (_, _) => CalculateHasChanges();
+                    configurationViewModel.OnConfigurationChanged += CalculateHasChanges;
                 }
             }
         }
 
         private void OnTreeViewSelectionChanged(object selection)
         {
-            SelectedConfiguration = selection as IConfigurationViewModel;
+            SelectedConfiguration = selection as ConfigurationViewModelBase;
         }
 
         private void OnOK(Window window)
@@ -122,7 +119,7 @@ namespace GameSettingsParser.ViewModels.Configuration
         {
             foreach (var treeViewItem in TreeViewItems)
             {
-                if (treeViewItem is IConfigurationViewModel viewModel && viewModel.CheckForChanges())
+                if (treeViewItem is ConfigurationViewModelBase viewModel && viewModel.CheckForChanges())
                 {
                     HasChanges = true;
                     return;

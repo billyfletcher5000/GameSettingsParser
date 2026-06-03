@@ -4,11 +4,9 @@ using GameSettingsParser.Views.Configuration.TextComparison;
 
 namespace GameSettingsParser.ViewModels.Configuration.TextComparison
 {
-    public abstract class BasicTextComparisonConfigurationViewModel : BindableBase, IConfigurationViewModel
+    public abstract class BasicTextComparisonConfigurationViewModel : ConfigurationViewModelBase
     {
-        public virtual IConfigurationModel? Configuration { get; set; }
-        
-        public virtual string DisplayName => Configuration?.DisplayName ?? "Text Comparison";
+        public override string DisplayName => Configuration?.DisplayName ?? "Text Comparison";
         
         public BasicTextComparisonConfigurationModel? ThisConfiguration => Configuration as BasicTextComparisonConfigurationModel;
 
@@ -19,9 +17,9 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             set => SetProperty(ref _minimumConfidence, value);
         }
 
-        public virtual Type ViewType => typeof(BasicTextComparisonConfigurationView);
+        public override Type ViewType => typeof(BasicTextComparisonConfigurationView);
         
-        public virtual void ApplyChanges()
+        public override void ApplyChanges()
         {
             if (ThisConfiguration == null)
                 return;
@@ -29,12 +27,12 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             ThisConfiguration.MinimumConfidence = MinimumConfidence;
         }
 
-        public virtual void Initialise()
+        protected override void OnConfigurationUpdated()
         {
             MinimumConfidence = ThisConfiguration?.MinimumConfidence ?? 0.0f;
         }
 
-        public virtual bool CheckForChanges()
+        public override bool CheckForChanges()
         {
             if (ThisConfiguration == null)
                 return false;

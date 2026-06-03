@@ -9,11 +9,13 @@ namespace GameSettingsParser.Model.Configuration.TextComparison
         public class WeightedConfiguration
         {
             public ITextComparisonConfigurationModel ConfigurationModel { get; init; }
+            public string DisplayName { get; set; }
             public float Weight { get; set; }
 
-            public WeightedConfiguration(ITextComparisonConfigurationModel configurationModel, float weight)
+            public WeightedConfiguration(ITextComparisonConfigurationModel configurationModel, string displayName, float weight)
             {
                 ConfigurationModel = configurationModel;
+                DisplayName = displayName;
                 Weight = weight;
             }
         }

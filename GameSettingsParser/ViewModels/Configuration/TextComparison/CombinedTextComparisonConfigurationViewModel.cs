@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Input;
 using GameSettingsParser.Controls.TextComparison;
-using GameSettingsParser.Model.Configuration;
 using GameSettingsParser.Model.Configuration.TextComparison;
 using GameSettingsParser.Services.TextComparison;
 using GameSettingsParser.Utility;
@@ -11,30 +11,44 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
     public class CombinedTextComparisonWeightedConfigurationViewModel : BindableBase
     {
         public CombinedTextComparisonConfigurationModel.WeightedConfiguration Model { get; }
+        
+        private ConfigurationViewModelBase? _viewModel;
+        public ConfigurationViewModelBase? ViewModel
+        {
+            get => _viewModel;
+            set => SetProperty(ref _viewModel, value);
+        }
 
         private string? _configurationModelId;
         public string? ConfigurationModelId
         {
             get => _configurationModelId;
-            set => SetProperty(ref _configurationModelId, value);
+            set
+            {
+                if (SetProperty(ref _configurationModelId, value))
+                {
+                    RaisePropertyChanged(nameof(DisplayName));
+                }
+            }
         }
         
-        private string? _configurationModelDisplayName;
-        public string? ConfigurationModelDisplayName
+        private string? _displayName;
+        public string? DisplayName
         {
-            get => _configurationModelDisplayName;
-            set => SetProperty(ref _configurationModelDisplayName, value);
+            get => _displayName;
+            set => SetProperty(ref _displayName, value);
         }
         
         private float _weight = 1.0f;
         public float Weight { get => _weight; set => SetProperty(ref _weight, value); }
 
-        public CombinedTextComparisonWeightedConfigurationViewModel(CombinedTextComparisonConfigurationModel.WeightedConfiguration model)
+        public CombinedTextComparisonWeightedConfigurationViewModel(CombinedTextComparisonConfigurationModel.WeightedConfiguration model, ConfigurationViewModelBase viewModel)
         {
             Model = model;
             ConfigurationModelId = SwitchableServiceHelper.GetSwitchableServiceId(model.ConfigurationModel.ServiceType);
-            ConfigurationModelDisplayName = SwitchableServiceHelper.GetSwitchableServiceDisplayName(model.ConfigurationModel.ServiceType);
+            DisplayName = model.DisplayName;
             Weight = model.Weight;
+            ViewModel = viewModel;
         }
 
         public bool CheckForChanges()
@@ -49,20 +63,6 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
 
         public override string DisplayName => ThisConfiguration?.DisplayName ?? "Weighted Combination";
 
-        private IConfigurationModel? _configuration;
-        public override IConfigurationModel? Configuration
-        {
-            get => _configuration;
-            set
-            {
-                if (SetProperty(ref _configuration, value))
-                {
-                    UpdateChildConfigurations();
-                    RaisePropertyChanged(nameof(ChildConfigurations));
-                }
-            }
-        }
-
         public new CombinedTextComparisonConfigurationModel? ThisConfiguration => Configuration as CombinedTextComparisonConfigurationModel;
         
         public ObservableCollection<CombinedTextComparisonWeightedConfigurationViewModel> ChildConfigurations { get; } = [];
@@ -76,12 +76,13 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             {
                 if (SetProperty(ref _selectedChildConfiguration, value))
                 {
-                    RaisePropertyChanged(nameof(SelectedChildConfigurationModel));
+                    RaisePropertyChanged(nameof(SelectedChildConfigurationViewModel));
+                    ((DelegateCommand)RemoveChildConfigurationCommand).RaiseCanExecuteChanged();
                 }
             }
         }
         
-        public IConfigurationModel? SelectedChildConfigurationModel => SelectedChildConfiguration?.Model.ConfigurationModel;
+        public ConfigurationViewModelBase? SelectedChildConfigurationViewModel => SelectedChildConfiguration?.ViewModel;
 
         private readonly Dictionary<string, Type> _availableTextComparisonTypes = new();
         public IEnumerable<string> AvailableTextComparisonTypes => _availableTextComparisonTypes.Keys;
@@ -133,8 +134,18 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             if (_containerProvider.Resolve(service.ConfigurationType) is not ITextComparisonConfigurationModel config)
                 return;
             
-            var weightedEntry = new CombinedTextComparisonConfigurationModel.WeightedConfiguration(config, 1.0f);
-            ChildConfigurations.Add(new CombinedTextComparisonWeightedConfigurationViewModel(weightedEntry));
+            var displayName = GetUniqueDisplayName(config.DisplayName);
+            var weightedEntry = new CombinedTextComparisonConfigurationModel.WeightedConfiguration(config, displayName, 1.0f);
+            var viewModel = _containerProvider.Resolve(config.ViewModelType) as ConfigurationViewModelBase;
+
+            if (viewModel == null)
+                return;
+
+            viewModel.Configuration = config;
+            var weightedConfigViewModel = new CombinedTextComparisonWeightedConfigurationViewModel(weightedEntry, viewModel);
+            weightedConfigViewModel.PropertyChanged += OnWeightedConfigPropertyChanged;
+            ChildConfigurations.Add(weightedConfigViewModel);
+            RaiseConfigurationChanged();
         }
 
         private void RemoveChildConfiguration()
@@ -142,7 +153,9 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             if (SelectedChildConfiguration == null)
                 return;
             
+            SelectedChildConfiguration.PropertyChanged -= OnWeightedConfigPropertyChanged;
             ChildConfigurations.Remove(SelectedChildConfiguration);
+            RaiseConfigurationChanged();
         }
         
         public override void ApplyChanges()
@@ -151,6 +164,7 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
 
             foreach (var childConfiguration in ChildConfigurations)
             {
+                childConfiguration.Model.DisplayName = childConfiguration.DisplayName!;
                 childConfiguration.Model.Weight = childConfiguration.Weight;
             }
             
@@ -158,10 +172,10 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             ThisConfiguration?.ChildConfigurations.AddRange(ChildConfigurations.Select(vm => vm.Model));
         }
 
-        public override void Initialise()
+        protected override void OnConfigurationUpdated()
         {
-            base.Initialise();
             UpdateChildConfigurations();
+            RaisePropertyChanged(nameof(ChildConfigurations));
         }
         
         private void UpdateChildConfigurations()
@@ -178,8 +192,16 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             {
                 if(ChildConfigurations!.Any(vm => vm.Model == childConfiguration))
                     continue;
+                
+                var viewModel = _containerProvider.Resolve(childConfiguration.ConfigurationModel.ViewModelType) as ConfigurationViewModelBase;
 
-                ChildConfigurations?.Add(new CombinedTextComparisonWeightedConfigurationViewModel(childConfiguration));
+                if (viewModel == null)
+                    return;
+
+                viewModel.Configuration = childConfiguration.ConfigurationModel;
+                var weightedConfigViewModel = new CombinedTextComparisonWeightedConfigurationViewModel(childConfiguration, viewModel);
+                weightedConfigViewModel.PropertyChanged += OnWeightedConfigPropertyChanged;
+                ChildConfigurations?.Add(weightedConfigViewModel);
             }
         }
 
@@ -198,6 +220,23 @@ namespace GameSettingsParser.ViewModels.Configuration.TextComparison
             }
             
             return base.CheckForChanges();
+        }
+
+        private string GetUniqueDisplayName(string displayName)
+        {
+            if(ChildConfigurations.All(vm => vm.DisplayName != displayName))
+                return displayName;
+            
+            var index = 2;
+            while(ChildConfigurations.Any(vm => vm.DisplayName == $"{displayName} ({index})"))
+                index++;
+            
+            return $"{displayName} ({index})";
+        }
+        
+        private void OnWeightedConfigPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            RaiseConfigurationChanged();
         }
     }
 }

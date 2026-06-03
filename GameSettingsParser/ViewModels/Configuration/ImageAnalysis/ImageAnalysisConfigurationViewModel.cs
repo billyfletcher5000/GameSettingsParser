@@ -1,16 +1,14 @@
-﻿using GameSettingsParser.Model.Configuration;
-using GameSettingsParser.Model.Configuration.ImageAnalysis;
+﻿using GameSettingsParser.Model.Configuration.ImageAnalysis;
 using GameSettingsParser.Views.Configuration.ImageAnalysis;
 
 namespace GameSettingsParser.ViewModels.Configuration.ImageAnalysis
 {
-    public class ImageAnalysisConfigurationViewModel : BindableBase, IConfigurationViewModel
+    public class ImageAnalysisConfigurationViewModel : ConfigurationViewModelBase
     {
-        public Type ViewType => typeof(ImageAnalysisConfigurationView);
+        public override Type ViewType => typeof(ImageAnalysisConfigurationView);
         
-        public string DisplayName => ThisConfiguration?.DisplayName ?? "Image Analysis";
+        public override string DisplayName => ThisConfiguration?.DisplayName ?? "Image Analysis";
         
-        public IConfigurationModel? Configuration { get; set; }
         public ImageAnalysisConfigurationModel? ThisConfiguration => Configuration as ImageAnalysisConfigurationModel;
     
         private bool _saveAnalysisTemporaryImages;
@@ -20,7 +18,7 @@ namespace GameSettingsParser.ViewModels.Configuration.ImageAnalysis
             set => SetProperty(ref _saveAnalysisTemporaryImages, value);
         }
 
-        public void ApplyChanges()
+        public override void ApplyChanges()
         {
             if (ThisConfiguration == null)
                 return;
@@ -28,7 +26,7 @@ namespace GameSettingsParser.ViewModels.Configuration.ImageAnalysis
             ThisConfiguration.SaveAnalysisTemporaryImages = SaveAnalysisTemporaryImages;
         }
 
-        public void Initialise()
+        protected override void OnConfigurationUpdated()
         {
             if (ThisConfiguration != null)
             {
@@ -40,7 +38,7 @@ namespace GameSettingsParser.ViewModels.Configuration.ImageAnalysis
             }
         }
 
-        public bool CheckForChanges()
+        public override bool CheckForChanges()
         {
             if(ThisConfiguration == null)
                 return false;
