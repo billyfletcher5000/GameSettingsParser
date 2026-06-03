@@ -97,7 +97,11 @@ namespace GameSettingsParser.Services.AnalysisExport
                                     thumbnailPath = Path.GetRelativePath(Path.GetDirectoryName(outputPath)!, thumbnailPath);
                                 }
 
-                                sb.Append($"[![{Path.GetFileNameWithoutExtension(finalPath)}]({thumbnailPath} \"{Path.GetFileNameWithoutExtension(finalPath)}\")]({finalPath})");
+                                var finalImageName = Path.GetFileNameWithoutExtension(finalPath);
+                                finalPath = $"./{finalPath.Replace('\\', '/')}";
+                                thumbnailPath = $"./{thumbnailPath.Replace('\\', '/')}";
+                                
+                                sb.Append($"[![{finalImageName}]({thumbnailPath} \"{finalImageName}\")]({finalPath})");
                             }
                         }
                         else
