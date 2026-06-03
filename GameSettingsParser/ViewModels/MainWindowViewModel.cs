@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Windows;
@@ -73,7 +74,6 @@ namespace GameSettingsParser.ViewModels
 
         private ImageInstanceModel? _selectedImageInstance;
         public ImageInstanceModel? SelectedImageInstance => _selectedImageInstance;
-        
 
         public ObservableCollection<MarkupTypeModel> MarkupTypes => _parsingProfile.MarkupTypes;
         
@@ -132,8 +132,6 @@ namespace GameSettingsParser.ViewModels
         public ICommand ParseToFileCommand { get; }
         public ICommand ParseToClipboardCommand { get; }
         public ICommand ParseToWebsiteCommand { get; }
-        
-        public ICommand TestButtonCommand { get; }
 
         private string _currentProfileFilePath = string.Empty;
         
@@ -168,7 +166,7 @@ namespace GameSettingsParser.ViewModels
 
             _analysisExportServiceProvider.CurrentChanged += service => RaiseCommandsCanExecuteChanged();
             
-            ClosingWindowCommand = new DelegateCommand(OnCloseWindow);
+            ClosingWindowCommand = new DelegateCommand<CancelEventArgs>(OnCloseWindow);
             
             FileNewCommand = new DelegateCommand(OnFileNew);
             FileOpenCommand = new DelegateCommand(OnFileOpen);
@@ -192,9 +190,6 @@ namespace GameSettingsParser.ViewModels
             ParseToFileCommand = new DelegateCommand(ParseToFile, () => CanGatherAndExport() && _analysisExportServiceProvider.Current is { SupportsExportToFile: true });
             ParseToClipboardCommand = new DelegateCommand(ParseToClipboard, () => CanGatherAndExport() && _analysisExportServiceProvider.Current is { SupportsExportToClipboard : true });
             ParseToWebsiteCommand = new DelegateCommand(ParseToWebsite, () => CanGatherAndExport() && _analysisExportServiceProvider.Current is { SupportsExportToWebsite : true });
-
-            // Debugging
-            TestButtonCommand = new DelegateCommand(TestButton);
 
             var generalConfig = _configurationService.GetConfiguration<GeneralConfigurationModel>();
             var autoOpenLastParsingProfile = generalConfig?.AutoOpenLastParsingProfile ?? true;
@@ -251,6 +246,9 @@ namespace GameSettingsParser.ViewModels
         
         public void OnFileOpen()
         {
+            if (CheckForProfileSave() == MessageBoxResult.Cancel)
+                return;
+            
             var openFileDialog = new OpenFileDialog
             {
                 Title = "Open Parsing Profile",
@@ -292,7 +290,7 @@ namespace GameSettingsParser.ViewModels
 
         public void OnFileSave()
         {
-            if (_currentProfileFilePath != null)
+            if (!string.IsNullOrEmpty(_currentProfileFilePath))
             {
                 ParsingProfileModel.Save(_parsingProfile, _currentProfileFilePath);
                 _parsingProfile.HasChanges = false;
@@ -352,18 +350,37 @@ namespace GameSettingsParser.ViewModels
                    && _parsingProfile.ImageInstances.Any(instance => instance.MarkupInstances.Count != 0);
         }
 
-        public void OnCloseWindow()
+        public void OnCloseWindow(CancelEventArgs cancelEventArgs)
         {
-            Save();
-        }
-        
-        public void Save()
-        {
+            if (CheckForProfileSave() == MessageBoxResult.Cancel)
+            {
+                cancelEventArgs.Cancel = true;
+                return;
+            }
+            
             UserSettings.Instance.LastParsingProfilePath = !string.IsNullOrEmpty(_currentProfileFilePath) ? _currentProfileFilePath : string.Empty;
             UserSettings.Instance.SelectedImageModel = _selectedImage != null ? _selectedImage.Name : string.Empty;
             UserSettings.Instance.SelectedMarkupType = _selectedMarkupType != null ? _selectedMarkupType.Name : string.Empty;
         }
+        
+        private MessageBoxResult CheckForProfileSave()
+        {
+            if (_parsingProfile.HasChanges)
+            {
+                var result = MessageBox.Show("You have unsaved changes. Do you want to save them?", "Unsaved Changes", MessageBoxButton.YesNoCancel);
+                switch (result)
+                {
+                    case MessageBoxResult.Yes:
+                        OnFileSave();
+                        break;
+                }
+                
+                return result;
+            }
 
+            return MessageBoxResult.None;
+        }
+        
         public void OnAddImage()
         {
             var openFileDialog = new OpenFileDialog
@@ -498,10 +515,6 @@ namespace GameSettingsParser.ViewModels
             SelectedImageInstance?.MarkupInstances.RemoveAll(instance => instance.Type == SelectedMarkupType);
         }
 
-        public void TestButton()
-        {
-        }
-
         private void ParseToFile()
         {
             _progressDialogService.ExecuteAsync(ParseToFileAsync, new ProgressDialogOptions() { Label = "" });
@@ -623,7 +636,6 @@ namespace GameSettingsParser.ViewModels
             ((DelegateCommand)EditMarkupTypeCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)ClearTypeInstancesCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)ClearAllInstancesCommand).RaiseCanExecuteChanged();
-            ((DelegateCommand)TestButtonCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)ParseToFileCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)ParseToClipboardCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)ParseToWebsiteCommand).RaiseCanExecuteChanged();
