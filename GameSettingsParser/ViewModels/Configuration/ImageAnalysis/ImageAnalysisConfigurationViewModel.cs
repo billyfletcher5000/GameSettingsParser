@@ -17,6 +17,21 @@ namespace GameSettingsParser.ViewModels.Configuration.ImageAnalysis
             get => _saveAnalysisTemporaryImages; 
             set => SetProperty(ref _saveAnalysisTemporaryImages, value);
         }
+        
+        private int _wordGapThreshold;
+        public int WordGapThreshold
+        {
+            get => _wordGapThreshold; 
+            set => SetProperty(ref _wordGapThreshold, value);
+        }
+
+        private double _minimumDynamicComparisonConfidence;
+
+        public double MinimumDynamicComparisonConfidence
+        {
+            get => _minimumDynamicComparisonConfidence;
+            set => SetProperty(ref _minimumDynamicComparisonConfidence, value);
+        }
 
         public override void ApplyChanges()
         {
@@ -24,6 +39,8 @@ namespace GameSettingsParser.ViewModels.Configuration.ImageAnalysis
                 return;
             
             ThisConfiguration.SaveAnalysisTemporaryImages = SaveAnalysisTemporaryImages;
+            ThisConfiguration.WordGapThreshold = WordGapThreshold;
+            ThisConfiguration.MinimumDynamicComparisonConfidence = MinimumDynamicComparisonConfidence;
         }
 
         protected override void OnConfigurationUpdated()
@@ -31,10 +48,14 @@ namespace GameSettingsParser.ViewModels.Configuration.ImageAnalysis
             if (ThisConfiguration != null)
             {
                 SaveAnalysisTemporaryImages = ThisConfiguration.SaveAnalysisTemporaryImages;
+                WordGapThreshold = ThisConfiguration.WordGapThreshold;
+                MinimumDynamicComparisonConfidence = ThisConfiguration.MinimumDynamicComparisonConfidence;
             }
             else
             {
                 SaveAnalysisTemporaryImages = false;
+                WordGapThreshold = 10;
+                MinimumDynamicComparisonConfidence = 0.0;
             }
         }
 
@@ -43,7 +64,9 @@ namespace GameSettingsParser.ViewModels.Configuration.ImageAnalysis
             if(ThisConfiguration == null)
                 return false;
             
-            return SaveAnalysisTemporaryImages != ThisConfiguration.SaveAnalysisTemporaryImages;
+            return SaveAnalysisTemporaryImages != ThisConfiguration.SaveAnalysisTemporaryImages ||
+                   WordGapThreshold != ThisConfiguration.WordGapThreshold ||
+                   Math.Abs(MinimumDynamicComparisonConfidence - ThisConfiguration.MinimumDynamicComparisonConfidence) > double.Epsilon;
         }
     }
 }

@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModel="clr-namespace:GameSettingsParser.ViewModels.Configuration.ImageAnalysis"
              xmlns:mvvm="http://prismlibrary.com/"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              mvvm:ViewModelLocator.AutoWireViewModel="False"
              d:DataContext="{d:DesignInstance Type=viewModel:ImageAnalysisConfigurationViewModel, IsDesignTimeCreatable=False}"
              mc:Ignorable="d"
@@ -33,10 +34,28 @@
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         
         <Label Grid.Row="0" Grid.Column="0">Save Temporary Images:</Label>
         <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding SaveAnalysisTemporaryImages, Mode=TwoWay}"/>
+        
+        
+        <Label Grid.Row="1" Grid.Column="0" ToolTip="The number of pixels between words for them to be considered part of the same block of text, tweak if you find words missing from titles. Only applies to dynamic markup types.">
+            Space Distance (px):
+        </Label>
+        <xctk:IntegerUpDown Grid.Row="1" Grid.Column="1" Height="25" Width="80" Value="{Binding Path=WordGapThreshold}" Minimum="-1" Increment="1" />
+        
+        
+        <Label Grid.Row="2" Grid.Column="0">
+            <Label.ToolTip>
+                The minimum confidence (0.0-1.0) the text comparison service must achieve to consider a dynamic markdown type as the most likely result,
+                leave at 0.0 unless you are using a comparison mode you really understand!
+            </Label.ToolTip>
+            Minimum Comparison Confidence:
+        </Label>
+        <xctk:DoubleUpDown Grid.Row="2" Grid.Column="1" Height="25" Width="80" Value="{Binding Path=MinimumDynamicComparisonConfidence}" Minimum="0.0" Maximum="1.0" Increment="0.01" />
     </Grid>
 </UserControl>

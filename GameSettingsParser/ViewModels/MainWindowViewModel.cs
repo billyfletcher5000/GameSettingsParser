@@ -84,29 +84,6 @@ namespace GameSettingsParser.ViewModels
             set => SetProperty(ref _selectedMarkupType, value);
         }
         public bool HasSelectedMarkupType => SelectedMarkupType != null;
-
-        public int WordGapThreshold
-        {
-            get => _parsingProfile.WordGapThreshold;
-            set
-            {
-                if (_parsingProfile.WordGapThreshold != value)
-                {
-                    _parsingProfile.WordGapThreshold = value;
-                    RaisePropertyChanged();
-                }
-            }
-        }
-
-        public double MinimumDynamicComparisonConfidence
-        {
-            get => _parsingProfile.MinimumDynamicComparisonConfidence;
-            set
-            {
-                _parsingProfile.MinimumDynamicComparisonConfidence = value;
-                RaisePropertyChanged();
-            }
-        }
         
         public ICommand ClosingWindowCommand { get; }
         
@@ -281,8 +258,6 @@ namespace GameSettingsParser.ViewModels
             
             SelectedImage = _parsingProfile.Images.FirstOrDefault();
             SelectedMarkupType = _parsingProfile.MarkupTypes.FirstOrDefault();
-            WordGapThreshold = _parsingProfile.WordGapThreshold;
-            MinimumDynamicComparisonConfidence = _parsingProfile.MinimumDynamicComparisonConfidence;
             
             RaiseProfilePropertiesChanged();
             RaiseCommandsCanExecuteChanged();
@@ -643,8 +618,6 @@ namespace GameSettingsParser.ViewModels
         
         private void RaiseProfilePropertiesChanged()
         {
-            RaisePropertyChanged(nameof(WordGapThreshold));
-            RaisePropertyChanged(nameof(MinimumDynamicComparisonConfidence));
             RaisePropertyChanged(nameof(Images));
             RaisePropertyChanged(nameof(SelectedImage));
             RaisePropertyChanged(nameof(MarkupTypes));

@@ -10,5 +10,12 @@ namespace GameSettingsParser.Model.Configuration.ImageAnalysis
         public string? Section => $"{ConfigurationSectionConstants.Project}/{ConfigurationSectionConstants.ImageAnalysis}";
     
         public bool SaveAnalysisTemporaryImages { get; set; } = false;
+        
+        /// <summary>
+        /// The amount of pixels between words' bounding boxes for them to be considered part of the same text string
+        /// </summary>
+        public int WordGapThreshold { get; set; } = 10;
+
+        public double MinimumDynamicComparisonConfidence { get; set; }
     }
 }

@@ -13,8 +13,6 @@ namespace GameSettingsParser.Model
     public class ParsingProfileModel : IConfigurationSource
     {
         private bool _hasSelfChanges;
-        private double _minimumDynamicComparisonConfidence;
-        private int _wordGapThreshold = 10;
 
         [JsonIgnore]
         public string? FilePath { get; private set; }
@@ -36,37 +34,7 @@ namespace GameSettingsParser.Model
             new GoogleViTTextComparisonConfigurationModel(),
             new CombinedTextComparisonConfigurationModel()
         ];
-
-        /// <summary>
-        /// The amount of pixels between words' bounding boxes for them to be considered part of the same text string
-        /// </summary>
-        public int WordGapThreshold
-        {
-            get => _wordGapThreshold;
-            set
-            {
-                if (_wordGapThreshold != value)
-                {
-                    _wordGapThreshold = value;
-                    _hasSelfChanges = true;
-                }
-            }
-        }
-
-        public double MinimumDynamicComparisonConfidence
-        {
-            get => _minimumDynamicComparisonConfidence;
-            set
-            {
-                // ReSharper disable once CompareOfFloatsByEqualityOperator
-                if (_minimumDynamicComparisonConfidence != value)
-                {
-                    _minimumDynamicComparisonConfidence = value;
-                    _hasSelfChanges = true;
-                }
-            }
-        }
-
+        
         [JsonIgnore]
         public bool HasChanges 
         {

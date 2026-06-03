@@ -259,8 +259,8 @@ namespace GameSettingsParser.Services.ImageAnalysis
                 }
             }
 
-            var wordGapThreshold = parsingProfile.WordGapThreshold;
-            var minimumConfidence = parsingProfile.MinimumDynamicComparisonConfidence;
+            var wordGapThreshold = config?.WordGapThreshold ?? 10;
+            var minimumConfidence = config?.MinimumDynamicComparisonConfidence ?? 0.0;
 
             // Iterate over each image, gathering each word instance and testing it against the target/training images
             foreach (var imagePath in imagePaths)
