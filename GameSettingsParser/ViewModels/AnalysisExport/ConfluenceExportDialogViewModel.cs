@@ -15,7 +15,12 @@ namespace GameSettingsParser.ViewModels
             set
             {
                 _site = value;
-                Config.SiteId = _siteTitleToSiteId[value];
+                
+                if(value != null && _siteTitleToSiteId.TryGetValue(value, out var siteId))
+                    Config.SiteId = siteId;
+                else
+                    Config.SiteId = string.Empty;
+                
                 _ = RetrieveSpaceOptionsAsync(_cancellationTokenSource);
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(IsOkEnabled));
@@ -31,7 +36,12 @@ namespace GameSettingsParser.ViewModels
             set
             {
                 _space = value;
-                Config.SpaceId = _spaceTitleToSpaceId[value];
+                
+                if(value != null && _spaceTitleToSpaceId.TryGetValue(value, out var spaceId))
+                    Config.SpaceId = spaceId;
+                else
+                    Config.SpaceId = string.Empty;
+                
                 _ = RetrievePageOptionsAsync(_cancellationTokenSource);
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(IsOkEnabled));
@@ -47,10 +57,9 @@ namespace GameSettingsParser.ViewModels
             set
             {
                 _page = value;
-                if (_pageTitleToPage.TryGetValue(value, out var page))
-                {
+                
+                if (value != null && _pageTitleToPage.TryGetValue(value, out var page))
                     Config.Page = page;
-                }
 
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(IsOkEnabled));
